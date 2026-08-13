@@ -27,6 +27,11 @@
 # local planning / scratch (never commit)
 /local/
 
+# generated AWS deploy artifacts
+/infra/aws/dev/task-definition.generated.json
+/infra/aws/dev/.last-image-tag
+
+
 # agent / editor local guidance (never commit)
 /.cursor/
 /.claude/
