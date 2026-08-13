@@ -47,14 +47,13 @@ function ModelHeader({ onOpenJoin }: { onOpenJoin: () => void }) {
           >
             The Model
           </a>
-          <a
-            href="#"
-            aria-disabled="true"
-            onClick={(e) => e.preventDefault()}
-            className="cursor-default text-ink/60 opacity-50 max-[820px]:w-full max-[820px]:border-b max-[820px]:border-ink/12 max-[820px]:py-4 max-[820px]:text-sm"
+          <Link
+            href="/calendar"
+            onClick={close}
+            className="text-ink/60 transition-colors hover:text-ink max-[820px]:w-full max-[820px]:border-b max-[820px]:border-ink/12 max-[820px]:py-4 max-[820px]:text-sm"
           >
             Calendar
-          </a>
+          </Link>
           <Link
             href="/#manifesto"
             onClick={close}
