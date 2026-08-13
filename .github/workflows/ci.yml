@@ -1,0 +1,292 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - develop
+
+permissions:
+  contents: read
+  pull-requests: read
+
+# Cancel superseded PR runs so repeated pushes don't burn Actions minutes.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      frontend: ${{ steps.out.outputs.frontend }}
+      infra_validate: ${{ steps.out.outputs.infra_validate }}
+      infra_integration: ${{ steps.out.outputs.infra_integration }}
+    steps:
+      - name: Checkout
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v7
+
+      - name: Path filter
+        id: filter
+        if: github.event_name == 'pull_request'
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            frontend:
+              - 'app/**'
+              - 'components/**'
+              - 'lib/**'
+              - 'db/**'
+              - 'public/**'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+              - 'tsconfig.json'
+              - 'next.config.*'
+              - 'eslint.config.*'
+              - 'postcss.config.*'
+              - 'components.json'
+              - '.prettier*'
+            infra_validate:
+              - 'infra/**'
+              - 'Dockerfile'
+              - '.dockerignore'
+              - '.github/workflows/**'
+            infra_integration:
+              - 'infra/docker/**'
+              - 'infra/database/**'
+              - 'db/**'
+              - 'Dockerfile'
+              - 'app/api/health/**'
+              - 'pnpm-lock.yaml'
+              - 'package.json'
+              - '.github/workflows/ci.yml'
+
+      - name: Set outputs
+        id: out
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            # Push to develop/main: always run the full suite.
+            echo "frontend=true" >> "$GITHUB_OUTPUT"
+            echo "infra_validate=true" >> "$GITHUB_OUTPUT"
+            echo "infra_integration=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # Single-package app: always run Frontend (format/lint/typecheck/build).
+          # Keep path filters for the more expensive infra jobs.
+          echo "frontend=true" >> "$GITHUB_OUTPUT"
+          echo "infra_validate=${{ steps.filter.outputs.infra_validate }}" >> "$GITHUB_OUTPUT"
+          echo "infra_integration=${{ steps.filter.outputs.infra_integration }}" >> "$GITHUB_OUTPUT"
+
+  frontend:
+    name: Frontend
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+
+    env:
+      # getPool() fails fast if DATABASE_URL is unset when /api/health is
+      # collected; pg.Pool does not connect eagerly, so a placeholder is enough.
+      DATABASE_URL: postgresql://currents:currents@127.0.0.1:5432/currents
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10.18.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check formatting
+        run: pnpm format:check
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Build
+        run: pnpm build
+
+  # Cheap infra checks — compose config only (no DB, no image build).
+  infra-validate:
+    name: Infra validate
+    needs: changes
+    if: needs.changes.outputs.infra_validate == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Validate Docker Compose config
+        run: docker compose -f infra/docker/docker-compose.yml config
+
+  # Expensive path — DB migrations + optional web image smoke.
+  infra-integration:
+    name: Infra integration
+    needs: changes
+    if: needs.changes.outputs.infra_integration == 'true'
+    runs-on: ubuntu-latest
+
+    env:
+      # CI publishes Postgres on host 5432 (no clash with other local projects).
+      POSTGRES_PORT: "5432"
+      DATABASE_URL: postgresql://currents:currents@127.0.0.1:5432/currents
+      WEB_PORT: "3000"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10.18.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Start db
+        # Docker Hub pulls flake on shared runners. Retry a few times.
+        run: |
+          set -euo pipefail
+          attempt=1
+          max_attempts=4
+          while true; do
+            if docker compose -f infra/docker/docker-compose.yml up -d --wait db; then
+              break
+            fi
+            if [ "${attempt}" -ge "${max_attempts}" ]; then
+              echo "Failed to start db after ${max_attempts} attempts" >&2
+              exit 1
+            fi
+            echo "db pull/start failed (attempt ${attempt}/${max_attempts}); retrying in 15s…" >&2
+            attempt=$((attempt + 1))
+            sleep 15
+          done
+
+      - name: Run migrations
+        run: pnpm db:migrate
+
+      - name: Assert schema_migrations bookkeeping
+        run: |
+          set -euo pipefail
+          count=$(docker compose -f infra/docker/docker-compose.yml exec -T db \
+            psql -U currents -d currents -v ON_ERROR_STOP=1 -tAc \
+            "select count(*) from schema_migrations;")
+          echo "schema_migrations rows: $count"
+          if [ "$count" -lt 1 ]; then
+            echo "Expected at least 1 applied migration, found $count" >&2
+            exit 1
+          fi
+
+      - name: Assert baseline table exists
+        run: |
+          set -euo pipefail
+          result=$(docker compose -f infra/docker/docker-compose.yml exec -T db \
+            psql -U currents -d currents -v ON_ERROR_STOP=1 -tAc \
+            "select to_regclass('public.app_meta') is not null;")
+          echo "app_meta present: $result"
+          if [ "$result" != "t" ]; then
+            echo "Expected app_meta table from 0001_baseline" >&2
+            exit 1
+          fi
+
+      - name: Re-run migrations (expect no-op)
+        run: |
+          set -euo pipefail
+          output=$(pnpm db:migrate)
+          echo "$output"
+          echo "$output" | grep -q "No pending migrations." || {
+            echo "Expected a re-run with no pending migrations to be a no-op" >&2
+            exit 1
+          }
+          count=$(docker compose -f infra/docker/docker-compose.yml exec -T db \
+            psql -U currents -d currents -v ON_ERROR_STOP=1 -tAc \
+            "select count(*) from schema_migrations;")
+          file_count=$(ls infra/database/migrations/*.sql | wc -l)
+          if [ "$count" -ne "$file_count" ]; then
+            echo "Expected exactly $file_count applied migrations, found $count" >&2
+            exit 1
+          fi
+
+      - name: Build and start web
+        run: docker compose -f infra/docker/docker-compose.yml --profile full up -d --build --wait web
+
+      - name: Smoke test web health
+        run: |
+          set -euo pipefail
+          body=$(curl -s http://127.0.0.1:3000/api/health)
+          echo "GET /api/health -> $body"
+          echo "$body" | grep -q '"status":"ok"' || {
+            echo "Expected /api/health to report ok" >&2
+            exit 1
+          }
+
+      # Destructive/expected-failure case — always last.
+      - name: Tamper an applied migration and expect checksum failure
+        run: |
+          set -euo pipefail
+          echo "-- tamper test" >> infra/database/migrations/0001_baseline.sql
+          if pnpm db:migrate; then
+            echo "Expected the migration runner to fail on a checksum mismatch" >&2
+            exit 1
+          fi
+
+  # Single required-style gate so path-skipped jobs don't look like missing checks.
+  ci:
+    name: CI
+    needs:
+      - changes
+      - frontend
+      - infra-validate
+      - infra-integration
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Aggregate results
+        shell: bash
+        run: |
+          set -euo pipefail
+          fail=0
+          for result in \
+            "${{ needs.frontend.result }}" \
+            "${{ needs.infra-validate.result }}" \
+            "${{ needs.infra-integration.result }}"
+          do
+            case "$result" in
+              success|skipped) ;;
+              *)
+                echo "Dependent job ended with: $result" >&2
+                fail=1
+                ;;
+            esac
+          done
+          if [ "${{ needs.changes.result }}" != "success" ]; then
+            echo "Detect changes failed: ${{ needs.changes.result }}" >&2
+            fail=1
+          fi
+          exit "$fail"

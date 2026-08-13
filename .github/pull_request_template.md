@@ -14,6 +14,7 @@
 - [ ] `pnpm format:check`
 - [ ] `pnpm build`
 - [ ] `pnpm docker:up` / `pnpm db:migrate` if database or Docker files changed
+- [ ] GitHub Actions `CI` check is green
 
 ## Notes
 

@@ -22,14 +22,14 @@ Health check (requires DB): [http://localhost:3000/api/health](http://localhost:
 
 ## Scripts
 
-| Script | Purpose |
-|---|---|
-| `pnpm dev` | Next.js dev server |
-| `pnpm build` / `pnpm start` | Production build / run |
-| `pnpm lint` / `pnpm typecheck` | Quality gates |
-| `pnpm format` / `pnpm format:check` | Prettier |
-| `pnpm docker:up` / `pnpm docker:down` | Postgres lifecycle |
-| `pnpm db:migrate` / `pnpm db:psql` / `pnpm db:reset` | Database |
+| Script                                               | Purpose                |
+| ---------------------------------------------------- | ---------------------- |
+| `pnpm dev`                                           | Next.js dev server     |
+| `pnpm build` / `pnpm start`                          | Production build / run |
+| `pnpm lint` / `pnpm typecheck`                       | Quality gates          |
+| `pnpm format` / `pnpm format:check`                  | Prettier               |
+| `pnpm docker:up` / `pnpm docker:down`                | Postgres lifecycle     |
+| `pnpm db:migrate` / `pnpm db:psql` / `pnpm db:reset` | Database               |
 
 ## Git workflow
 
