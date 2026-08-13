@@ -1,0 +1,12 @@
+---
+description: shadcn/ui and Tailwind conventions
+globs: "**/*.{tsx,css}"
+alwaysApply: false
+---
+
+# UI (shadcn + Tailwind)
+
+- shadcn primitives live in `components/ui/` only; add via `pnpm dlx shadcn@latest add <component>`.
+- App-specific composition lives in `components/`. Use `cn()` from `lib/utils.ts`.
+- Neutral design tokens live in `app/globals.css`. Prefer semantic tokens over hardcoded colors; keep feature styles out of `globals.css`.
+- Data views handle loading, empty, error, and success states.

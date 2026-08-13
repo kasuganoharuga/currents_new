@@ -1,0 +1,13 @@
+---
+description: PostgreSQL pool and migration conventions
+globs: "{db,infra/database,lib/db.ts,app/api/**}/**/*.{ts,sql}"
+alwaysApply: false
+---
+
+# Database
+
+- Connection string: `DATABASE_URL` only. Local default matches Compose: `postgresql://currents:currents@127.0.0.1:5433/currents` (host port 5433).
+- Use `getPool()` from `@/lib/db` (or `@/db/pool`). Do not create ad-hoc `new Pool()` in pages or route handlers.
+- Migrations: `infra/database/migrations/*.sql`, applied by `pnpm db:migrate` (`db/migrate.ts`).
+- Applied migrations are immutable (checksum enforced). Add a new `NNNN_description.sql` file instead of editing.
+- Reset local data only with `pnpm db:reset` (destructive: volume wipe + re-migrate).

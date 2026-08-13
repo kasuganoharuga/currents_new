@@ -1,0 +1,40 @@
+---
+description: Next.js frontend conventions
+globs: "{app,components,lib}/**/*.{ts,tsx}"
+alwaysApply: false
+---
+
+# Frontend (Next.js)
+
+Call chain:
+
+```text
+page (server) → lib/ helper → data
+page → component → components/ui primitive
+route handler → lib/ helper (thin)
+```
+
+- Pages compose components and fetch via `lib/` helpers — keep business logic out of markup-heavy pages.
+- Default to Server Components. Add `"use client"` only at the smallest interactive subtree.
+- Client code must not import server-only helpers (DB pool, secrets, Node-only modules).
+- Route handlers stay thin and call one helper.
+
+**Naming:** folders `kebab-case`; components `PascalCase`; helpers `*.ts`.
+
+**Split when:** page > ~80 lines, component > ~150 lines, or mixed data + markup. Extract loading/empty/error into sibling components.
+
+**Split shape:** once a route needs splitting, colocate per-route:
+
+```text
+app/<route>/
+  page.tsx                server: data fetching + composition only
+  types.ts                view-level types for this route
+  hooks/
+    use-*.ts              client hooks ("use client")
+  components/
+    *.tsx                 server or client components scoped to this route
+```
+
+- `hooks/` is for client-only logic — never fetch data or call DB code from inside a hook.
+- Server-only data fetching stays in `page.tsx` or a route-scoped server component under `components/`.
+- Top-level `components/` and `lib/` are for pieces shared across multiple routes.
