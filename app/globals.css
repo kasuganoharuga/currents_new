@@ -1,8 +1,13 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
 :root {
+  --cream: #fbf4e8;
+  --cream-2: #f3ead8;
+  --ink: #0b0b0b;
+  --lime: #e4fc54;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -46,6 +51,12 @@
 }
 
 @theme inline {
+  --color-cream: var(--cream);
+  --color-cream-2: var(--cream-2);
+  --color-ink: var(--ink);
+  --color-lime: var(--lime);
+  --font-display: var(--font-archivo);
+  --font-space: var(--font-space-mono);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -79,5 +90,31 @@
 
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@keyframes wave-flow {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes tagin {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes dashflow {
+  to {
+    stroke-dashoffset: -24;
   }
 }

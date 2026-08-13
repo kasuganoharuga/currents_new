@@ -29,6 +29,7 @@
 
 # agent / editor local guidance (never commit)
 /.cursor/
+/.claude/
 /AGENTS.md
 /CLAUDE.md
 
