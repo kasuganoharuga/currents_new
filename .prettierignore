@@ -4,3 +4,7 @@ out
 build
 pnpm-lock.yaml
 coverage
+.cursor
+.claude
+AGENTS.md
+CLAUDE.md
