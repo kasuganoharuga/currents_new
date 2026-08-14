@@ -28,7 +28,20 @@ Until RDS exists, deploy the web service **without** `DATABASE_URL`. Marketing p
 
 When RDS is ready, set `DATABASE_URL` on the task definition (Secrets Manager preferred) and run `pnpm db:migrate` from a one-off task or bastion.
 
-## Deploy (web, no RDS)
+## GitHub Actions deploy
+
+Workflow: [`.github/workflows/deploy-develop.yml`](../../.github/workflows/deploy-develop.yml)
+
+- Triggers after **CI succeeds** on a **push to `develop`** (`workflow_run`), or via **manual `workflow_dispatch`**
+- Assumes IAM role `arn:aws:iam::765332581489:role/currents-github-actions-deploy` (OIDC)
+- Builds/pushes `currents-develop/app:<git-sha>`, registers task definition, updates ECS service, smokes `/api/live`
+
+Trust / policy JSON used to provision the role:
+
+- [`github-actions-trust.json`](./github-actions-trust.json)
+- [`github-actions-policy.json`](./github-actions-policy.json)
+
+## Deploy (web, no RDS) — manual from a laptop
 
 ```bash
 # 1) Build & push (linux/amd64)

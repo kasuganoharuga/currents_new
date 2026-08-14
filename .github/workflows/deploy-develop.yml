@@ -1,0 +1,137 @@
+name: Deploy develop
+
+# Deploys to AWS develop ECS after CI succeeds on develop (or manual dispatch).
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deploy-develop
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Deploy develop ECS
+    runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.event == 'push' &&
+        github.event.workflow_run.head_branch == 'develop'
+      )
+
+    env:
+      AWS_ACCOUNT_ID: "765332581489"
+      AWS_REGION: ap-southeast-2
+      AWS_ROLE_ARN: arn:aws:iam::765332581489:role/currents-github-actions-deploy
+      CLUSTER: currents-develop
+      SERVICE: currents-develop-app
+      ECR_REPOSITORY: currents-develop/app
+      DEVELOP_URL: https://develop.currentscommunity.com
+
+    steps:
+      - name: Resolve deploy SHA
+        id: sha
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "sha=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ steps.sha.outputs.sha }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push image
+        id: image
+        shell: bash
+        run: |
+          set -euo pipefail
+          REGISTRY="${{ steps.ecr.outputs.registry }}"
+          # ECR repository is IMMUTABLE — tag with full commit SHA.
+          IMAGE_TAG="${{ steps.sha.outputs.sha }}"
+          IMAGE_URI="${REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+
+          docker build --platform linux/amd64 -t "${IMAGE_URI}" .
+          docker push "${IMAGE_URI}"
+
+          echo "uri=${IMAGE_URI}" >> "$GITHUB_OUTPUT"
+          echo "tag=${IMAGE_TAG}" >> "$GITHUB_OUTPUT"
+          echo "Pushed ${IMAGE_URI}"
+
+      - name: Register task definition and update service
+        shell: bash
+        run: |
+          set -euo pipefail
+          IMAGE_URI="${{ steps.image.outputs.uri }}"
+          IMAGE_TAG="${{ steps.image.outputs.tag }}"
+
+          TASK_JSON="$(mktemp)"
+          sed "s|REPLACE_TAG|${IMAGE_TAG}|g" \
+            infra/aws/dev/task-definition.template.json > "${TASK_JSON}"
+
+          # Ensure the registered definition points at the exact pushed URI.
+          jq \
+            --arg image "${IMAGE_URI}" \
+            '.containerDefinitions |= map(if .name == "app" then .image = $image else . end)' \
+            "${TASK_JSON}" > "${TASK_JSON}.next"
+          mv "${TASK_JSON}.next" "${TASK_JSON}"
+
+          TASK_ARN="$(aws ecs register-task-definition \
+            --cli-input-json "file://${TASK_JSON}" \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)"
+          echo "Registered ${TASK_ARN}"
+
+          aws ecs update-service \
+            --cluster "${CLUSTER}" \
+            --service "${SERVICE}" \
+            --task-definition "${TASK_ARN}" \
+            --force-new-deployment \
+            --query 'service.serviceArn' \
+            --output text
+
+          echo "Waiting for service stable..."
+          aws ecs wait services-stable \
+            --cluster "${CLUSTER}" \
+            --services "${SERVICE}"
+          echo "Service stable."
+
+      - name: Smoke check
+        shell: bash
+        run: |
+          set -euo pipefail
+          body="$(curl -fsS "${DEVELOP_URL}/api/live")"
+          echo "${body}"
+          echo "${body}" | grep -q '"status":"ok"' || {
+            echo "Expected /api/live to report ok" >&2
+            exit 1
+          }
+          home="$(curl -sS -o /dev/null -w '%{http_code}' "${DEVELOP_URL}/")"
+          echo "GET / -> ${home}"
+          if [ "${home}" -ge 500 ]; then
+            echo "Home page returned ${home}" >&2
+            exit 1
+          fi
