@@ -32,7 +32,7 @@ When RDS is ready, set `DATABASE_URL` on the task definition (Secrets Manager pr
 
 Workflow: [`.github/workflows/deploy-develop.yml`](../../.github/workflows/deploy-develop.yml)
 
-- Triggers after **CI succeeds** on a **push to `develop`** (`workflow_run`), or via **manual `workflow_dispatch`**
+- Triggers on **push to `develop`**, after **CI succeeds on develop** once this workflow exists on `main` (`workflow_run`), or via **manual `workflow_dispatch`**
 - Assumes IAM role `arn:aws:iam::765332581489:role/currents-github-actions-deploy` (OIDC)
 - Builds/pushes `currents-develop/app:<git-sha>`, registers task definition, updates ECS service, smokes `/api/live`
 

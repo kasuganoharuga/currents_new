@@ -1,8 +1,12 @@
 name: Deploy develop
 
-# Deploys to AWS develop ECS after CI succeeds on develop (or manual dispatch).
+# Deploys Currents develop ECS on push to develop (CI runs in parallel),
+# after successful CI via workflow_run once this file is on default branch
+# (main), or via manual workflow_dispatch.
 
 on:
+  push:
+    branches: [develop]
   workflow_run:
     workflows: ["CI"]
     types: [completed]
@@ -22,7 +26,9 @@ jobs:
     runs-on: ubuntu-latest
     if: >
       github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'push' ||
       (
+        github.event_name == 'workflow_run' &&
         github.event.workflow_run.conclusion == 'success' &&
         github.event.workflow_run.event == 'push' &&
         github.event.workflow_run.head_branch == 'develop'
@@ -43,10 +49,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
-          else
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
             echo "sha=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Checkout
@@ -92,7 +98,6 @@ jobs:
           sed "s|REPLACE_TAG|${IMAGE_TAG}|g" \
             infra/aws/dev/task-definition.template.json > "${TASK_JSON}"
 
-          # Ensure the registered definition points at the exact pushed URI.
           jq \
             --arg image "${IMAGE_URI}" \
             '.containerDefinitions |= map(if .name == "app" then .image = $image else . end)' \
