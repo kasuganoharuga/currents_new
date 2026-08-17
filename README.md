@@ -20,6 +20,17 @@ pnpm dev          # http://localhost:3000
 
 Health check (requires DB): [http://localhost:3000/api/health](http://localhost:3000/api/health)
 
+## Luma integration
+
+Set `LUMA_API_KEY` in `.env.local` to replace the calendar iframe with the
+server-rendered event feed. The browser only receives the fields needed by the
+event cards; the calendar-scoped API key stays on the server.
+
+`POST /api/luma/webhooks` mirrors `guest.registered` and `guest.updated` into
+PostgreSQL. Create the webhook in Luma after deployment, store its `whsec_...`
+value as `LUMA_WEBHOOK_SECRET`, and point it at the public endpoint. Deliveries
+are signature-checked, replay-window checked, and deduplicated by Webhook ID.
+
 ## Scripts
 
 | Script                                               | Purpose                |
