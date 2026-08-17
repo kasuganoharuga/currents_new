@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { Eyebrow } from "@/components/site/eyebrow";
 import { REVEAL, revealState, useReveal } from "@/components/site/use-reveal";
 
-function ModelHero() {
+function AboutHero() {
   const [eyebrowRef, eyebrowVisible] = useReveal<HTMLDivElement>();
   const [h1Ref, h1Visible] = useReveal<HTMLHeadingElement>();
   const [subRef, subVisible] = useReveal<HTMLParagraphElement>();
@@ -56,4 +56,4 @@ function ModelHero() {
   );
 }
 
-export { ModelHero };
+export { AboutHero };
