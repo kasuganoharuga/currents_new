@@ -2,18 +2,27 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { usePathname } from "next/navigation";
+import { useState, type ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
 
-function ModelHeader({ onOpenJoin }: { onOpenJoin: () => void }) {
+const NAV_LINKS = [
+  { href: "/calendar", label: "Calendar" },
+  { href: "/about", label: "About" },
+  { href: "/manifesto", label: "Manifesto" },
+  { href: "/sponsors", label: "Sponsors" },
+];
+
+function SiteHeader({ cta }: { cta?: ReactNode }) {
+  const pathname = usePathname();
   const [navOpen, setNavOpen] = useState(false);
   const close = () => setNavOpen(false);
 
   return (
     <header className="sticky top-0 z-[60] border-b border-ink/12 bg-cream/82 backdrop-blur-[10px]">
       <div className="mx-auto flex h-[66px] max-w-[1140px] items-center justify-between gap-4 px-8">
-        <Link href="/">
+        <Link href="/" aria-label="Currents home">
           <Image
             src="/brand/currents-logo.png"
             alt="Currents"
@@ -24,7 +33,7 @@ function ModelHeader({ onOpenJoin }: { onOpenJoin: () => void }) {
           />
         </Link>
         <nav
-          id="model-nav-links"
+          id="site-nav-links"
           className={cn(
             "flex gap-7 font-space text-xs tracking-[0.14em] uppercase",
             "max-[820px]:fixed max-[820px]:top-[66px] max-[820px]:right-0 max-[820px]:left-0 max-[820px]:z-[55] max-[820px]:flex-col max-[820px]:items-start max-[820px]:gap-0 max-[820px]:border-b max-[820px]:border-ink/12 max-[820px]:bg-cream max-[820px]:px-8 max-[820px]:pt-2 max-[820px]:pb-5 max-[820px]:transition-transform max-[820px]:duration-350 max-[820px]:ease-in-out",
@@ -33,47 +42,32 @@ function ModelHeader({ onOpenJoin }: { onOpenJoin: () => void }) {
               : "max-[820px]:-translate-y-[140%]",
           )}
         >
-          <Link
-            href="/"
-            onClick={close}
-            className="text-ink/60 transition-colors hover:text-ink max-[820px]:w-full max-[820px]:border-b max-[820px]:border-ink/12 max-[820px]:py-4 max-[820px]:text-sm"
-          >
-            Home
-          </Link>
-          <a
-            href="#"
-            onClick={(e) => e.preventDefault()}
-            className="border-b-2 border-lime pb-[3px] text-ink max-[820px]:w-full max-[820px]:border-b max-[820px]:border-ink/12 max-[820px]:py-4 max-[820px]:text-sm"
-          >
-            The Model
-          </a>
-          <Link
-            href="/calendar"
-            onClick={close}
-            className="text-ink/60 transition-colors hover:text-ink max-[820px]:w-full max-[820px]:border-b max-[820px]:border-ink/12 max-[820px]:py-4 max-[820px]:text-sm"
-          >
-            Calendar
-          </Link>
-          <Link
-            href="/#manifesto"
-            onClick={close}
-            className="text-ink/60 transition-colors hover:text-ink max-[820px]:w-full max-[820px]:border-b max-[820px]:border-ink/12 max-[820px]:py-4 max-[820px]:text-sm"
-          >
-            Manifesto
-          </Link>
+          {NAV_LINKS.map(({ href, label }) => {
+            const active = pathname === href;
+            return (
+              <Link
+                key={href}
+                href={href}
+                onClick={close}
+                className={cn(
+                  "max-[820px]:w-full max-[820px]:border-b max-[820px]:border-ink/12 max-[820px]:py-4 max-[820px]:text-sm",
+                  active
+                    ? "border-b-2 border-lime pb-[3px] text-ink"
+                    : "text-ink/60 transition-colors hover:text-ink",
+                )}
+              >
+                {label}
+              </Link>
+            );
+          })}
         </nav>
         <div className="flex items-center gap-5">
-          <button
-            className="rounded-full bg-ink px-[18px] py-[9px] font-space text-xs font-bold tracking-[0.14em] text-cream uppercase transition-colors hover:bg-black"
-            onClick={onOpenJoin}
-          >
-            Join
-          </button>
+          {cta}
           <button
             className="flex size-10 flex-col items-center justify-center gap-1.5 p-2 min-[820px]:hidden"
             aria-label="Menu"
             aria-expanded={navOpen}
-            aria-controls="model-nav-links"
+            aria-controls="site-nav-links"
             onClick={() => setNavOpen((v) => !v)}
           >
             <span
@@ -101,4 +95,4 @@ function ModelHeader({ onOpenJoin }: { onOpenJoin: () => void }) {
   );
 }
 
-export { ModelHeader };
+export { SiteHeader };

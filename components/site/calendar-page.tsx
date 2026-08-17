@@ -1,21 +1,23 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 import { archivo, spaceMono } from "@/components/site/fonts";
 import { SiteFooter } from "@/components/site/site-footer";
-import { SiteHeader } from "@/components/site/home/site-header";
+import { SiteHeader } from "@/components/site/site-header";
+import { JoinButton } from "@/components/site/join-button";
+import { JoinDialog } from "@/components/site/join-dialog";
 import { Eyebrow } from "@/components/site/eyebrow";
 import { lumaCalendarEmbedUrl } from "@/lib/links";
 
 function CalendarPage() {
-  const router = useRouter();
+  const [joinOpen, setJoinOpen] = useState(false);
 
   return (
     <div
       className={`${archivo.variable} ${spaceMono.variable} overflow-x-hidden bg-cream font-display text-ink antialiased selection:bg-lime selection:text-ink`}
     >
-      <SiteHeader onOpenManifesto={() => router.push("/#manifesto")} />
+      <SiteHeader cta={<JoinButton onClick={() => setJoinOpen(true)} />} />
 
       <section className="py-[clamp(56px,8vw,96px)]">
         <div className="mx-auto max-w-[1140px] px-8">
@@ -43,6 +45,7 @@ function CalendarPage() {
       </section>
 
       <SiteFooter />
+      <JoinDialog open={joinOpen} onOpenChange={setJoinOpen} />
     </div>
   );
 }

@@ -1,12 +1,13 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useRef } from "react";
 
 import { cn } from "@/lib/utils";
 import { REVEAL, revealState, useReveal } from "@/components/site/use-reveal";
 
-function Hero({ onOpenManifesto }: { onOpenManifesto: () => void }) {
+function Hero() {
   const heroPathRef = useRef<SVGPathElement>(null);
   const [eyebrowRef, eyebrowVisible] = useReveal<HTMLDivElement>();
   const [h1Ref, h1Visible] = useReveal<HTMLHeadingElement>();
@@ -158,12 +159,12 @@ function Hero({ onOpenManifesto }: { onOpenManifesto: () => void }) {
             </svg>
           </div>
           <div className="mt-[22px] flex">
-            <button
+            <Link
+              href="/manifesto"
               className="inline-flex items-center gap-3 border-b-2 border-lime pb-1.5 font-space text-[13px] font-bold tracking-[0.14em] uppercase text-ink transition-[gap] duration-200 hover:gap-[18px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-ink focus-visible:outline-offset-4"
-              onClick={onOpenManifesto}
             >
               Read the manifesto <span aria-hidden="true">&rarr;</span>
-            </button>
+            </Link>
           </div>
         </div>
       </div>
