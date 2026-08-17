@@ -89,8 +89,15 @@ jobs:
 
       - name: Register task definition and update service
         shell: bash
+        env:
+          LUMA_API_KEY: ${{ secrets.LUMA_API_KEY }}
         run: |
           set -euo pipefail
+          if [ -z "${LUMA_API_KEY}" ]; then
+            echo "LUMA_API_KEY repository secret is required" >&2
+            exit 1
+          fi
+
           IMAGE_URI="${{ steps.image.outputs.uri }}"
           IMAGE_TAG="${{ steps.image.outputs.tag }}"
 
@@ -100,7 +107,16 @@ jobs:
 
           jq \
             --arg image "${IMAGE_URI}" \
-            '.containerDefinitions |= map(if .name == "app" then .image = $image else . end)' \
+            --arg luma_api_key "${LUMA_API_KEY}" \
+            '.containerDefinitions |= map(
+              if .name == "app" then
+                .image = $image |
+                .environment = (
+                  ((.environment // []) | map(select(.name != "LUMA_API_KEY"))) +
+                  [{"name": "LUMA_API_KEY", "value": $luma_api_key}]
+                )
+              else . end
+            )' \
             "${TASK_JSON}" > "${TASK_JSON}.next"
           mv "${TASK_JSON}.next" "${TASK_JSON}"
 
@@ -140,3 +156,11 @@ jobs:
             echo "Home page returned ${home}" >&2
             exit 1
           fi
+
+          events="$(curl -fsS "${DEVELOP_URL}/api/luma/events")"
+          echo "${events}" | jq -e '.events | type == "array"' >/dev/null || {
+            echo "Expected /api/luma/events to return an events array" >&2
+            exit 1
+          }
+          event_count="$(echo "${events}" | jq '.events | length')"
+          echo "GET /api/luma/events -> ok (${event_count} events)"
