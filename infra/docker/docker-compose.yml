@@ -2,6 +2,7 @@ name: currents
 
 services:
   db:
+    container_name: currents-db
     image: postgres:17-alpine
     environment:
       POSTGRES_DB: currents
@@ -11,7 +12,7 @@ services:
       # Host 5433 avoids clashing with other local Postgres (e.g. another project on 5432).
       - "${POSTGRES_PORT:-5433}:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - currents_postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U currents -d currents"]
       interval: 5s
@@ -19,8 +20,9 @@ services:
       retries: 10
       start_period: 10s
 
-  web:
+  backend:
     profiles: ["full"]
+    container_name: currents-backend
     build:
       context: ../..
       dockerfile: Dockerfile
@@ -28,10 +30,12 @@ services:
       DATABASE_URL: postgresql://currents:currents@db:5432/currents
       NODE_ENV: production
     ports:
-      - "127.0.0.1:${WEB_PORT:-3000}:3000"
+      - "127.0.0.1:${BACKEND_PORT:-3000}:3000"
     depends_on:
       db:
         condition: service_healthy
 
 volumes:
-  postgres_data:
+  # Explicit name keeps data across compose key renames / recreates.
+  currents_postgres_data:
+    name: currents_postgres_data

@@ -33,14 +33,15 @@ are signature-checked, replay-window checked, and deduplicated by Webhook ID.
 
 ## Scripts
 
-| Script                                               | Purpose                |
-| ---------------------------------------------------- | ---------------------- |
-| `pnpm dev`                                           | Next.js dev server     |
-| `pnpm build` / `pnpm start`                          | Production build / run |
-| `pnpm lint` / `pnpm typecheck`                       | Quality gates          |
-| `pnpm format` / `pnpm format:check`                  | Prettier               |
-| `pnpm docker:up` / `pnpm docker:down`                | Postgres lifecycle     |
-| `pnpm db:migrate` / `pnpm db:psql` / `pnpm db:reset` | Database               |
+| Script                                               | Purpose                  |
+| ---------------------------------------------------- | ------------------------ |
+| `pnpm dev`                                           | Next.js dev server       |
+| `pnpm build` / `pnpm start`                          | Production build / run   |
+| `pnpm lint` / `pnpm typecheck`                       | Quality gates            |
+| `pnpm format` / `pnpm format:check`                  | Prettier                 |
+| `pnpm docker:up` / `pnpm docker:down`                | Postgres lifecycle       |
+| `pnpm docker:up:full`                                | Postgres + backend image |
+| `pnpm db:migrate` / `pnpm db:psql` / `pnpm db:reset` | Database                 |
 
 ## Git workflow
 

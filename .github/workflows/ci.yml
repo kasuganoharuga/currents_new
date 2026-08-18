@@ -138,7 +138,7 @@ jobs:
       - name: Validate Docker Compose config
         run: docker compose -f infra/docker/docker-compose.yml config
 
-  # Expensive path — DB migrations + optional web image smoke.
+  # Expensive path — DB migrations + optional backend image smoke.
   infra-integration:
     name: Infra integration
     needs: changes
@@ -149,7 +149,7 @@ jobs:
       # CI publishes Postgres on host 5432 (no clash with other local projects).
       POSTGRES_PORT: "5432"
       DATABASE_URL: postgresql://currents:currents@127.0.0.1:5432/currents
-      WEB_PORT: "3000"
+      BACKEND_PORT: "3000"
 
     steps:
       - name: Checkout
@@ -233,10 +233,10 @@ jobs:
             exit 1
           fi
 
-      - name: Build and start web
-        run: docker compose -f infra/docker/docker-compose.yml --profile full up -d --build --wait web
+      - name: Build and start backend
+        run: docker compose -f infra/docker/docker-compose.yml --profile full up -d --build --wait backend
 
-      - name: Smoke test web health
+      - name: Smoke test backend health
         run: |
           set -euo pipefail
           body=$(curl -s http://127.0.0.1:3000/api/health)

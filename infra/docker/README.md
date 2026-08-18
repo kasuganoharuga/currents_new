@@ -1,5 +1,12 @@
 # Docker development
 
+Containers use fixed names under project `currents`:
+
+| Service   | Container          | Default host port       |
+| --------- | ------------------ | ----------------------- |
+| `db`      | `currents-db`      | `5433`                  |
+| `backend` | `currents-backend` | `3000` (profile `full`) |
+
 Start Postgres (and run migrations):
 
 ```bash
@@ -22,10 +29,10 @@ Host port defaults to **5433** so it does not clash with another local Postgres 
 
 Day-to-day: keep `db` in Docker and run Next on the host with `pnpm dev`.
 
-Optional full stack (build + run the Next image too):
+Optional full stack (build + run the Next image as `currents-backend`):
 
 ```bash
-docker compose --env-file .env -f infra/docker/docker-compose.yml --profile full up -d --build
+pnpm docker:up:full
 ```
 
 Schema is owned by versioned SQL under `infra/database/migrations/`, applied by `pnpm db:migrate` — not by `docker-entrypoint-initdb.d`.

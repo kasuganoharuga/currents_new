@@ -11,10 +11,11 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "docker:up": "docker compose --env-file .env -f infra/docker/docker-compose.yml up -d --wait db && pnpm db:migrate",
-    "docker:down": "docker compose --env-file .env -f infra/docker/docker-compose.yml down --remove-orphans",
+    "docker:up:full": "docker compose --env-file .env -f infra/docker/docker-compose.yml --profile full up -d --build --wait && pnpm db:migrate",
+    "docker:down": "docker compose --env-file .env -f infra/docker/docker-compose.yml --profile full down --remove-orphans",
     "db:migrate": "tsx db/migrate.ts",
     "db:psql": "docker compose --env-file .env -f infra/docker/docker-compose.yml exec db psql -U currents -d currents",
-    "db:reset": "docker compose --env-file .env -f infra/docker/docker-compose.yml down -v --remove-orphans && pnpm docker:up"
+    "db:reset": "docker compose --env-file .env -f infra/docker/docker-compose.yml --profile full down -v --remove-orphans && pnpm docker:up"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1112.0",
