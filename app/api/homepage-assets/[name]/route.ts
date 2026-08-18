@@ -1,4 +1,6 @@
 import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 
 const ASSET_KEYS = {
   "community-conversation":
@@ -31,6 +33,23 @@ const s3 = new S3Client({
   region: process.env.AWS_REGION ?? "ap-southeast-2",
 });
 
+async function loadLocalAsset(name: keyof typeof ASSET_KEYS) {
+  const body = await readFile(
+    path.join(process.cwd(), "public", "homepage-assets", `${name}.jpg`),
+  );
+
+  return new Response(body, {
+    headers: {
+      "Cache-Control":
+        process.env.NODE_ENV === "development"
+          ? "public, max-age=0, must-revalidate"
+          : "public, max-age=31536000, immutable",
+      "Content-Length": String(body.byteLength),
+      "Content-Type": "image/jpeg",
+    },
+  });
+}
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -44,13 +63,26 @@ export async function GET(
     return new Response("Not found", { status: 404 });
   }
 
+  const assetName = name as keyof typeof ASSET_KEYS;
+
+  // Local development should work without requiring every contributor to
+  // configure AWS credentials. Production continues to use the S3 copies.
+  if (process.env.NODE_ENV === "development") {
+    try {
+      return await loadLocalAsset(assetName);
+    } catch (error) {
+      console.error("Unable to load local homepage asset", error);
+      return new Response("Asset unavailable", { status: 502 });
+    }
+  }
+
   try {
     const asset = await s3.send(
       new GetObjectCommand({
         Bucket:
           process.env.CURRENTS_ASSETS_BUCKET ??
           "currents-develop-assets-765332581489-ap-southeast-2",
-        Key: ASSET_KEYS[name as keyof typeof ASSET_KEYS],
+        Key: ASSET_KEYS[assetName],
       }),
     );
 
@@ -71,6 +103,12 @@ export async function GET(
     });
   } catch (error) {
     console.error("Unable to load homepage asset from S3", error);
-    return new Response("Asset unavailable", { status: 502 });
+
+    try {
+      return await loadLocalAsset(assetName);
+    } catch (fallbackError) {
+      console.error("Unable to load bundled homepage asset", fallbackError);
+      return new Response("Asset unavailable", { status: 502 });
+    }
   }
 }
