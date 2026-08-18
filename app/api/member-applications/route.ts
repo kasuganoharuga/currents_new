@@ -1,6 +1,7 @@
 import { getPool } from "@/lib/db";
+import { createClaimToken } from "@/lib/member-applications/claim";
 
-const CATEGORIES = new Set(["Founder", "Investor", "Innovator"]);
+const CATEGORIES = new Set(["Founder", "Investor", "Operator", "Eco-System"]);
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function stringValue(
@@ -75,8 +76,14 @@ export async function POST(request: Request) {
       values,
     );
 
+    const applicationId = result.rows[0].id;
+
     return Response.json(
-      { ok: true, applicationId: result.rows[0].id },
+      {
+        ok: true,
+        applicationId,
+        claimToken: createClaimToken(applicationId, email),
+      },
       { status: 201 },
     );
   } catch (error) {

@@ -91,12 +91,24 @@ jobs:
         shell: bash
         env:
           LUMA_API_KEY: ${{ secrets.LUMA_API_KEY }}
+          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          MEMBER_APPLICATION_CLAIM_SECRET: ${{ secrets.MEMBER_APPLICATION_CLAIM_SECRET }}
         run: |
           set -euo pipefail
           if [ -z "${LUMA_API_KEY}" ]; then
             echo "LUMA_API_KEY repository secret is required" >&2
             exit 1
           fi
+
+          # Auth secrets are optional until configured — deploy still ships the
+          # marketing site; join/OTP/Google stay inactive without them.
+          for name in BETTER_AUTH_SECRET GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET MEMBER_APPLICATION_CLAIM_SECRET; do
+            if [ -z "${!name}" ]; then
+              echo "warning: ${name} not set; auth env will not be injected" >&2
+            fi
+          done
 
           IMAGE_URI="${{ steps.image.outputs.uri }}"
           IMAGE_TAG="${{ steps.image.outputs.tag }}"
@@ -108,15 +120,33 @@ jobs:
           jq \
             --arg image "${IMAGE_URI}" \
             --arg luma_api_key "${LUMA_API_KEY}" \
-            '.containerDefinitions |= map(
-              if .name == "app" then
-                .image = $image |
-                .environment = (
-                  ((.environment // []) | map(select(.name != "LUMA_API_KEY"))) +
-                  [{"name": "LUMA_API_KEY", "value": $luma_api_key}]
-                )
-              else . end
-            )' \
+            --arg better_auth_secret "${BETTER_AUTH_SECRET}" \
+            --arg google_client_id "${GOOGLE_CLIENT_ID}" \
+            --arg google_client_secret "${GOOGLE_CLIENT_SECRET}" \
+            --arg member_application_claim_secret "${MEMBER_APPLICATION_CLAIM_SECRET}" \
+            '
+              def put($n; $v):
+                if ($v | length) == 0 then . else . + [{"name": $n, "value": $v}] end;
+              .containerDefinitions |= map(
+                if .name == "app" then
+                  .image = $image |
+                  .environment = (
+                    ((.environment // []) | map(select(
+                      .name != "LUMA_API_KEY" and
+                      .name != "BETTER_AUTH_SECRET" and
+                      .name != "GOOGLE_CLIENT_ID" and
+                      .name != "GOOGLE_CLIENT_SECRET" and
+                      .name != "MEMBER_APPLICATION_CLAIM_SECRET"
+                    )))
+                    | put("LUMA_API_KEY"; $luma_api_key)
+                    | put("BETTER_AUTH_SECRET"; $better_auth_secret)
+                    | put("GOOGLE_CLIENT_ID"; $google_client_id)
+                    | put("GOOGLE_CLIENT_SECRET"; $google_client_secret)
+                    | put("MEMBER_APPLICATION_CLAIM_SECRET"; $member_application_claim_secret)
+                  )
+                else . end
+              )
+            ' \
             "${TASK_JSON}" > "${TASK_JSON}.next"
           mv "${TASK_JSON}.next" "${TASK_JSON}"
 
