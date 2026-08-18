@@ -1,12 +1,9 @@
 name: Deploy develop
 
-# Deploys Currents develop ECS on push to develop (CI runs in parallel),
-# after successful CI via workflow_run once this file is on default branch
-# (main), or via manual workflow_dispatch.
+# Deploys Currents develop ECS after CI succeeds on a develop push, or via
+# manual workflow_dispatch.
 
 on:
-  push:
-    branches: [develop]
   workflow_run:
     workflows: ["CI"]
     types: [completed]
@@ -24,9 +21,9 @@ jobs:
   deploy:
     name: Deploy develop ECS
     runs-on: ubuntu-latest
+    environment: develop
     if: >
       github.event_name == 'workflow_dispatch' ||
-      github.event_name == 'push' ||
       (
         github.event_name == 'workflow_run' &&
         github.event.workflow_run.conclusion == 'success' &&
@@ -44,21 +41,15 @@ jobs:
       DEVELOP_URL: https://develop.currentscommunity.com
 
     steps:
-      - name: Resolve deploy SHA
-        id: sha
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ "${{ github.event_name }}" = "workflow_run" ]; then
-            echo "sha=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Checkout
         uses: actions/checkout@v7
         with:
-          ref: ${{ steps.sha.outputs.sha }}
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || 'develop' }}
+
+      - name: Resolve deploy SHA
+        id: sha
+        shell: bash
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6

@@ -137,9 +137,13 @@ function WhoPlugsIn() {
           </TabsList>
 
           {PERSONAS.map((persona) => (
-            <TabsContent key={persona.id} value={persona.id} className="mt-3">
-              <div className="grid grid-cols-[0.55fr_1px_1.45fr] items-center gap-[clamp(24px,4vw,52px)] bg-ink px-[clamp(26px,4vw,52px)] py-[clamp(28px,4vw,50px)] text-cream max-[700px]:grid-cols-1 max-[700px]:gap-5">
-                <div>
+            <TabsContent
+              key={persona.id}
+              value={persona.id}
+              className="mt-3 w-full"
+            >
+              <div className="grid w-full grid-cols-[minmax(0,26%)_1px_minmax(0,1fr)] items-center gap-[clamp(24px,4vw,52px)] bg-ink px-[clamp(26px,4vw,52px)] py-[clamp(28px,4vw,50px)] text-cream max-[700px]:grid-cols-1 max-[700px]:gap-5">
+                <div className="min-w-0">
                   <span className="font-space text-[10px] tracking-[0.18em] text-lime">
                     {persona.number}
                   </span>
@@ -151,7 +155,7 @@ function WhoPlugsIn() {
                   orientation="vertical"
                   className="h-full bg-cream/18 max-[700px]:hidden"
                 />
-                <p className="max-w-[56ch] text-[clamp(17px,1.8vw,21px)] leading-[1.52] text-cream/72">
+                <p className="min-w-0 max-w-[56ch] text-[clamp(17px,1.8vw,21px)] leading-[1.52] text-cream/72">
                   {persona.description}
                 </p>
                 <div className="hidden max-[700px]:block">

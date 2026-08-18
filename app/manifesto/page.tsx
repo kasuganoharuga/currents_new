@@ -5,7 +5,7 @@ import { ManifestoPage } from "@/components/site/manifesto/manifesto-page";
 export const metadata: Metadata = {
   title: "Currents · Manifesto",
   description:
-    "The old systems are failing. Currents is for the people who see the ground floor of the next one.",
+    "Innovation isn't for its own sake. It's how we leave this place better than we found it, for the next generation.",
 };
 
 export default function Page() {

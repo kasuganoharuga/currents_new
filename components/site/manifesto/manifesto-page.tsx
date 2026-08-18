@@ -9,47 +9,44 @@ import { JoinButton } from "@/components/site/join-button";
 import { JoinDialog } from "@/components/site/join-dialog";
 import { cn } from "@/lib/utils";
 
-const LINES = [
-  <>
-    The old systems are failing in plain sight. The markets, the media, the
-    machinery of politics, the things we were told to trust, are cracking, and
-    everyone can feel it. Trust is draining out of the room.
-  </>,
-  <span
-    key="emph"
-    className="text-[clamp(22px,3vw,34px)] font-extrabold tracking-[-0.01em] text-lime"
-  >
-    We&apos;re not here to mourn that. We&apos;re here to build what comes after
-    it.
-  </span>,
-  <>
-    Currents is for the people who look at a collapsing system and see the
-    ground floor of the next one. Innovators. Rule-breakers, the legal kind. The
-    ones who make waves instead of waiting for the tide.
-  </>,
-  <>
-    We believe Australia is more than mining, real estate and tourism. We
-    believe a small place can produce global leaders. We believe the answer to
-    falling trust isn&apos;t louder talk. It&apos;s visible action. Build the
-    thing. Ship the proof. Lift the person next to you.
-  </>,
-  <span key="lime" className="text-lime">
-    We give first. We fight for win–win. We fight the problem, not each other.
-    We put people before business, because a system that forgets that is exactly
-    the one now falling apart.
-  </span>,
-  <>
-    Rising tides lift all boats. So we build the tide, event by event, node by
-    node, city by city, until the current is strong enough to carry the next
-    generation further than we got.
-  </>,
-  <span
-    key="emph2"
-    className="text-[clamp(22px,3vw,34px)] font-extrabold tracking-[-0.01em]"
-  >
-    This isn&apos;t a networking group. It&apos;s a movement with a room.
-  </span>,
-];
+const MANIFESTO_PARAGRAPHS = [
+  {
+    text: "Innovation isn't for its own sake. It's how we leave this place better than we found it, for the next generation.",
+    tone: "body",
+  },
+  {
+    text: "Carving a new way doesn’t come without it’s pain.",
+    tone: "highlight",
+  },
+  {
+    text: "To build something new is to go against the grain. You break new ground, and the world pushes back. Old systems, old hierarchies, old ways of doing things that would rather you sat down and waited your turn.",
+    tone: "body",
+  },
+  {
+    text: "Every innovator knows the feeling. Fighting the current. Being told our ideas are too grandiose.",
+    tone: "body",
+  },
+  {
+    text: "We’re here to be the change, not just speak about it. We're here to MAKE bigger than big. Shout it off the rooftops. Live free, create vibrantly, and empower others as we do for ourselves.",
+    tone: "lime",
+  },
+  {
+    text: "We believe Australia is more than its natural resources. Our small country can produce global leaders, and market leading innovations. Real players, real change, shifting the landscape and moving the markets, for the right reasons.",
+    tone: "body",
+  },
+  {
+    text: "We give first. We fight for win-win. We fight the problem, not each other. We put people before business.",
+    tone: "lime",
+  },
+  {
+    text: "Rising tides lift all boats. So we build the tide, event by event, node by node, city by city, until the current is strong enough to carry the next generation further than we've come.",
+    tone: "body",
+  },
+  {
+    text: "This isn't just a networking group. It's a countercultural movement, to change the way we think, live, and be.",
+    tone: "closing",
+  },
+] as const;
 
 function ManifestoPage() {
   const [show, setShow] = useState(false);
@@ -102,36 +99,41 @@ function ManifestoPage() {
           />
         </svg>
 
-        <div className="relative z-[3] mx-auto max-w-[880px] p-[clamp(48px,9vw,96px)_clamp(24px,6vw,40px)_clamp(90px,16vw,180px)]">
-          <div className="mb-[26px] font-space text-xs tracking-[0.24em] text-lime uppercase">
-            The movement
-          </div>
-          <div className="mb-[46px] font-display text-[clamp(56px,13vw,150px)] font-black uppercase leading-[0.86] tracking-[-0.045em]">
-            Come{" "}
-            <span className="text-lime">
-              make
-              <br />
-              waves.
-            </span>
-          </div>
-          {LINES.map((line, i) => (
+        <article className="relative z-[3] mx-auto max-w-[880px] p-[clamp(48px,9vw,96px)_clamp(24px,6vw,40px)_clamp(90px,16vw,180px)]">
+          <header>
+            <div className="mb-[26px] font-space text-xs tracking-[0.24em] text-lime uppercase">
+              The movement
+            </div>
+            <h1 className="mb-[46px] font-display text-[clamp(56px,13vw,150px)] font-black uppercase leading-[0.86] tracking-[-0.045em]">
+              Come{" "}
+              <span className="text-lime">
+                make
+                <br />
+                waves.
+              </span>
+            </h1>
+          </header>
+
+          {MANIFESTO_PARAGRAPHS.map((paragraph, i) => (
             <p
               key={i}
               className={cn(
-                "mb-6 text-[clamp(19px,2.3vw,27px)] leading-[1.46] font-medium text-cream transition-[opacity,transform] duration-700 ease-[cubic-bezier(0.2,0.7,0.2,1)] motion-reduce:!opacity-100 motion-reduce:!translate-y-0",
+                "mb-6 text-[clamp(19px,2.3vw,27px)] leading-[1.46] font-medium text-cream transition-[opacity,transform] duration-700 ease-[cubic-bezier(0.2,0.7,0.2,1)] motion-reduce:!translate-y-0 motion-reduce:!opacity-100",
+                paragraph.tone === "highlight" &&
+                  "text-[clamp(22px,3vw,34px)] font-extrabold tracking-[-0.01em] text-lime",
+                paragraph.tone === "lime" && "text-lime",
+                paragraph.tone === "closing" &&
+                  "text-[clamp(22px,3vw,34px)] font-extrabold tracking-[-0.01em]",
                 show
                   ? "translate-y-0 opacity-100"
                   : "translate-y-[28px] opacity-0",
               )}
               style={{ transitionDelay: show ? `${0.04 + i * 0.07}s` : "0s" }}
             >
-              {line}
+              {paragraph.text}
             </p>
           ))}
-          <span className="mt-[34px] block font-space text-[10px] tracking-[0.18em] text-cream/60 uppercase">
-            Temporary story · V1, to refine
-          </span>
-        </div>
+        </article>
       </div>
 
       <SiteFooter />
