@@ -12,7 +12,7 @@ const PERSONAS = [
   {
     id: "founders",
     number: "01",
-    title: "Founders",
+    title: "Founder",
     image: "/api/homepage-assets/persona-founders",
     imageAlt: "Currents members connecting at an event",
     imagePosition: "54% center",
@@ -22,7 +22,7 @@ const PERSONAS = [
   {
     id: "investors",
     number: "02",
-    title: "Investors",
+    title: "Investor",
     image: "/api/homepage-assets/persona-investors",
     imageAlt: "A lively Currents gathering on the Gold Coast",
     imagePosition: "center",
@@ -30,14 +30,24 @@ const PERSONAS = [
       "Currents is where you meet the people a step ahead of you, and hand back what you've already cracked.",
   },
   {
-    id: "innovators",
+    id: "operators",
     number: "03",
-    title: "Innovators",
-    image: "/api/homepage-assets/persona-innovators",
-    imageAlt: "Currents guests gathering inside a creative venue",
-    imagePosition: "center",
+    title: "Operator",
+    image: "/api/homepage-assets/community-creators",
+    imageAlt: "Currents community creators working together at an event",
+    imagePosition: "52% center",
     description:
-      "You are a pioneer! Making a change, and creating value in a brand new way.",
+      "You turn ambition into momentum. Bring the practical experience, pattern recognition, and operating discipline that help good ideas become real companies.",
+  },
+  {
+    id: "ecosystem",
+    number: "04",
+    title: "Eco-System",
+    image: "/api/homepage-assets/community-network",
+    imageAlt: "Currents members strengthening their local network",
+    imagePosition: "50% center",
+    description:
+      "You connect the people, places, and resources around innovation—opening doors, strengthening networks, and helping the whole community move forward.",
   },
 ] as const;
 
@@ -59,7 +69,7 @@ function PersonaVisual({
         src={persona.image}
         alt={persona.imageAlt}
         fill
-        sizes={compact ? "(max-width: 700px) 100vw, 0px" : "33vw"}
+        sizes={compact ? "(max-width: 700px) 100vw, 0px" : "25vw"}
         className="object-cover saturate-[0.86] transition-transform duration-500 group-hover:scale-[1.025]"
         style={{ objectPosition: persona.imagePosition }}
       />
@@ -107,7 +117,7 @@ function WhoPlugsIn() {
           className={cn(REVEAL, revealState(bodyVisible))}
         >
           <TabsList
-            className="grid h-auto w-full grid-cols-3 gap-3 bg-transparent p-0 max-[700px]:gap-1.5"
+            className="grid h-auto w-full grid-cols-4 gap-3 bg-transparent p-0 max-[700px]:grid-cols-2 max-[700px]:gap-1.5"
             style={{ height: "auto" }}
           >
             {PERSONAS.map((persona) => (

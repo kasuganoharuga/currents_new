@@ -126,8 +126,8 @@ function Hero({ onJoin }: { onJoin: () => void }) {
               objectPosition: "50% center",
             },
             {
-              src: "/api/homepage-assets/persona-investors",
-              objectPosition: "52% center",
+              src: "/api/homepage-assets/community-women",
+              objectPosition: "64% center",
             },
           ]}
           className="max-[860px]:hidden"
@@ -181,7 +181,7 @@ function Hero({ onJoin }: { onJoin: () => void }) {
               objectPosition: "50% center",
             },
             {
-              src: "/api/homepage-assets/persona-innovators",
+              src: "/api/homepage-assets/community-men",
               objectPosition: "50% center",
             },
           ]}

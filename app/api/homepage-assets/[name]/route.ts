@@ -1,6 +1,18 @@
 import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
 
 const ASSET_KEYS = {
+  "community-conversation":
+    "homepage/kenji-2026-08-17/web/community-conversation.jpg",
+  "community-creators": "homepage/kenji-2026-08-17/web/community-creators.jpg",
+  "community-men": "homepage/kenji-2026-08-17/web/community-men.jpg",
+  "community-mixer": "homepage/kenji-2026-08-17/web/community-mixer.jpg",
+  "community-network": "homepage/kenji-2026-08-17/web/community-network.jpg",
+  "community-operators":
+    "homepage/kenji-2026-08-17/web/community-operators.jpg",
+  "community-portrait": "homepage/kenji-2026-08-17/web/community-portrait.jpg",
+  "community-speakers": "homepage/kenji-2026-08-17/web/community-speakers.jpg",
+  "community-table": "homepage/kenji-2026-08-17/web/community-table.jpg",
+  "community-women": "homepage/kenji-2026-08-17/web/community-women.jpg",
   "hero-coast": "homepage/kenji-2026-08-17/web/hero-coast.jpg",
   "hero-left-community":
     "homepage/kenji-2026-08-17/web/hero-left-community.jpg",
