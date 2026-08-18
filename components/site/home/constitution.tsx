@@ -1,189 +1,91 @@
 "use client";
 
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { cn } from "@/lib/utils";
 import { Eyebrow } from "@/components/site/eyebrow";
 import { REVEAL, revealState, useReveal } from "@/components/site/use-reveal";
 
-const VALUES: {
-  num: string;
-  name: React.ReactNode;
-  why: string;
-  wide?: boolean;
-}[] = [
+const PRINCIPLES = [
   {
-    num: "P/01",
-    name: (
-      <>
-        People first,
-        <br />
-        <span className="bg-lime px-[0.1em] box-decoration-clone">
-          business second
-        </span>
-      </>
-    ),
-    why: "Relationships come before the sale. When we get that order right, the business takes care of itself.",
+    number: "P/01",
+    title: "Make some noise, make some waves",
+    subtext:
+      "Good ideas should travel. We speak up, share the work, and create enough momentum for others to move with us.",
   },
   {
-    num: "P/02",
-    name: (
-      <>
-        We are experts at{" "}
-        <span className="bg-lime px-[0.1em] box-decoration-clone">
-          conflict resolution
-        </span>
-      </>
-    ),
-    why: "We will disagree, and we hope we do. What sets us apart is that we resolve it. Seek first to understand, then to be understood.",
+    number: "P/02",
+    title: "We fight for win win",
+    subtext:
+      "We don't trade one person's progress for another's loss. We look for the outcome that leaves every side stronger.",
   },
   {
-    num: "P/03",
-    name: (
-      <>
-        No one is above{" "}
-        <span className="bg-lime px-[0.1em] box-decoration-clone">
-          feedback
-        </span>
-      </>
-    ),
-    why: "Net worth doesn't buy an exemption. Everyone gives honest feedback and everyone can take it.",
+    number: "P/03",
+    title: "Front line leadership; We lead, not plead",
+    subtext:
+      "Leadership starts where the work is. We step forward, take responsibility, and show the way through action.",
   },
   {
-    num: "P/04",
-    name: (
-      <>
-        Be transparent.
-        <br />
-        <span className="bg-lime px-[0.1em] box-decoration-clone">
-          If you believe it, speak it
-        </span>
-      </>
-    ),
-    why: "Silence is where resentment grows. Name the uncomfortable truth early, kindly, out loud.",
+    number: "P/04",
+    title: "We're all open to feedback",
+    subtext:
+      "Feedback is how the work gets better and trust stays real. We give it clearly, receive it without ego, and act on what helps.",
   },
   {
-    num: "P/05",
-    name: (
-      <>
-        We will disagree,
-        <br />
-        <span className="bg-lime px-[0.1em] box-decoration-clone">be kind</span>
-      </>
-    ),
-    why: "Individuals and a collective at the same time. Hold your view firmly; hold the person gently.",
+    number: "P/05",
+    title: "We will disagree, it's how you do it",
+    subtext:
+      "Different views make the work sharper. We challenge ideas directly, stay curious, and never make disagreement personal.",
   },
   {
-    num: "P/06",
-    name: (
-      <>
-        We fight the problem,
-        <br />
-        <span className="bg-lime px-[0.1em] box-decoration-clone">
-          not each other
-        </span>
-      </>
-    ),
-    why: "A standing reminder in the room: are we fighting each other right now, or the thing in front of us?",
+    number: "P/06",
+    title: "We fight the problem not each other",
+    subtext:
+      "Pressure points us toward the issue, not at each other. We stay on the same side and put our energy into the solution.",
   },
   {
-    num: "P/07",
-    name: (
-      <>
-        Think{" "}
-        <span className="bg-lime px-[0.1em] box-decoration-clone">
-          inclusive
-        </span>
-        ,
-        <br />
-        not exclusive
-      </>
-    ),
-    why: "We invite people into the framework rather than gatekeeping it. The door is the point.",
+    number: "P/07",
+    title: "If you believe it, speak it; Be transparent",
+    subtext:
+      "Say the important thing while it can still help. We share context, name concerns early, and make our intentions visible.",
   },
   {
-    num: "P/08",
-    name: (
-      <>
-        We fight for{" "}
-        <span className="bg-lime px-[0.1em] box-decoration-clone">win–win</span>
-      </>
-    ),
-    why: "If you win, I win. What's made by the community gets used by the community.",
+    number: "P/08",
+    title: "We are experts at conflict resolution",
+    subtext:
+      "Conflict is not failure; leaving it unresolved is. We listen to understand, find common ground, and leave the relationship stronger.",
   },
-  {
-    num: "P/09",
-    name: (
-      <>
-        Think bigger{" "}
-        <span className="bg-lime px-[0.1em] box-decoration-clone">
-          than big
-        </span>
-      </>
-    ),
-    why: "When the path runs out, we build one. Stuck is just the moment before the breakthrough. The one you say when you think you've hit the end.",
-    wide: true,
-  },
-];
-
-function ValueCard({ v }: { v: (typeof VALUES)[number] }) {
-  const [ref, visible] = useReveal<HTMLDivElement>();
-  return (
-    <div
-      ref={ref}
-      className={cn(
-        "flex flex-col gap-3 bg-cream p-[30px_28px] transition-colors hover:bg-cream-2",
-        v.wide && "col-span-full",
-        REVEAL,
-        revealState(visible),
-      )}
-    >
-      <span className="font-space text-xs tracking-[0.1em] text-ink/40">
-        {v.num}
-      </span>
-      <span
-        className={cn(
-          "font-display font-black uppercase leading-[1.06] tracking-[-0.01em]",
-          v.wide ? "text-[clamp(26px,3.4vw,38px)]" : "text-[23px]",
-        )}
-      >
-        {v.name}
-      </span>
-      <span
-        className={cn(
-          "text-[15px] leading-[1.55] text-ink/60",
-          v.wide && "max-w-[62ch]",
-        )}
-      >
-        {v.why}
-      </span>
-    </div>
-  );
-}
+] as const;
 
 function Constitution() {
   const [introRef, introVisible] = useReveal<HTMLDivElement>();
   const [gridRef, gridVisible] = useReveal<HTMLDivElement>();
-  const [noteRef, noteVisible] = useReveal<HTMLDivElement>();
 
   return (
-    <section id="constitution" className="py-[clamp(72px,11vw,140px)]">
-      <div className="mx-auto max-w-[1140px] px-8">
+    <section
+      id="constitution"
+      className="border-y border-ink/10 bg-cream-2 px-6 py-[clamp(64px,9vw,108px)] sm:px-8"
+    >
+      <div className="mx-auto max-w-[1140px]">
         <div
           ref={introRef}
           className={cn(
-            "mb-[52px] grid grid-cols-[repeat(2,1fr)] items-end gap-10 max-[820px]:grid-cols-1 max-[820px]:gap-[22px]",
+            "mb-[clamp(34px,5vw,56px)] grid grid-cols-[0.8fr_1.2fr] gap-[clamp(32px,6vw,88px)] max-[760px]:grid-cols-1",
             REVEAL,
             revealState(introVisible),
           )}
         >
           <div>
-            <Eyebrow className="mb-[22px]">What we stand for</Eyebrow>
-            <h2 className="font-display text-[clamp(34px,5.4vw,68px)] font-black uppercase leading-[0.98] tracking-[-0.02em]">
-              The things we hold
-              <br />
-              each other to.
+            <Eyebrow className="mb-5">What we stand for</Eyebrow>
+            <h2 className="font-display text-[clamp(42px,5.8vw,76px)] font-black uppercase leading-[0.9] tracking-[-0.04em]">
+              The things we hold each other to.
             </h2>
           </div>
-          <p className="max-w-[56ch] text-[17px] leading-[1.6] text-ink/60">
+          <p className="max-w-[58ch] self-end text-[clamp(16px,1.7vw,20px)] leading-[1.58] text-ink/62">
             Not slogans. The operating principles every node runs on. Some are
             paradoxes on purpose. They don&apos;t box you in, they frame how we
             move. We say them as if we already live them, because if we do,
@@ -191,34 +93,39 @@ function Constitution() {
           </p>
         </div>
 
-        <div
+        <Accordion
+          type="multiple"
           ref={gridRef}
           className={cn(
-            "grid grid-cols-[repeat(2,1fr)] gap-px border border-ink bg-ink max-[640px]:grid-cols-1",
+            "grid grid-cols-2 gap-px border border-ink bg-ink max-[700px]:grid-cols-1",
             REVEAL,
             revealState(gridVisible),
           )}
         >
-          {VALUES.map((v) => (
-            <ValueCard key={v.num} v={v} />
+          {PRINCIPLES.map((principle) => (
+            <AccordionItem
+              key={principle.number}
+              value={principle.number}
+              className="border-0 bg-cream px-[clamp(18px,2.4vw,30px)] data-[state=open]:bg-lime"
+            >
+              <AccordionTrigger className="min-h-[104px] gap-6 py-6 text-left hover:no-underline [&>svg]:mt-1 [&>svg]:text-ink/45">
+                <span className="grid grid-cols-[48px_1fr] items-start gap-3">
+                  <span className="pt-1 font-space text-[10px] tracking-[0.12em] text-ink/45">
+                    {principle.number}
+                  </span>
+                  <span className="font-display text-[clamp(19px,2.1vw,27px)] font-black uppercase leading-[1.04] tracking-[-0.02em]">
+                    {principle.title}
+                  </span>
+                </span>
+              </AccordionTrigger>
+              <AccordionContent className="pl-[60px]">
+                <p className="border-t border-ink/16 pt-4 pr-8 pb-2 text-[15px] leading-[1.55] text-ink/68">
+                  {principle.subtext}
+                </p>
+              </AccordionContent>
+            </AccordionItem>
           ))}
-        </div>
-
-        <div
-          ref={noteRef}
-          className={cn(
-            "mt-[30px] flex flex-wrap items-start justify-between gap-4 rounded-md border-[1.5px] border-dashed border-ink/40 p-[22px_26px]",
-            REVEAL,
-            revealState(noteVisible),
-          )}
-        >
-          <p className="max-w-[60ch] text-[15px] text-ink/60">
-            <b className="text-ink">These are ours to shape.</b> This is a
-            working constitution, not a finished one, sent to partners on
-            purpose. Tell us where it&apos;s wrong. (That&apos;s principle 03 in
-            action.)
-          </p>
-        </div>
+        </Accordion>
       </div>
     </section>
   );

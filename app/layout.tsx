@@ -14,7 +14,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Currents",
-  description: "Next.js full-stack app with PostgreSQL",
+  description:
+    "Innovators making waves, here to break new ground, build new systems, and inspire the next generation.",
 };
 
 export default function RootLayout({

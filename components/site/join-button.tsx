@@ -1,11 +1,14 @@
+import { Button } from "@/components/ui/button";
+
 function JoinButton({ onClick }: { onClick: () => void }) {
   return (
-    <button
-      className="rounded-full bg-ink px-[18px] py-[9px] font-space text-xs font-bold tracking-[0.14em] text-cream uppercase transition-colors hover:bg-black"
+    <Button
+      variant="brand"
+      className="h-auto px-[18px] py-[9px] font-space text-xs font-bold tracking-[0.12em] uppercase max-[480px]:px-3 max-[480px]:text-[9px]"
       onClick={onClick}
     >
-      Join Currents
-    </button>
+      Become a member
+    </Button>
   );
 }
 

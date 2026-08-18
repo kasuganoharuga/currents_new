@@ -1,70 +1,58 @@
 "use client";
 
+import Link from "next/link";
+
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { BrandButton } from "@/components/site/brand-button";
 import { Eyebrow } from "@/components/site/eyebrow";
 import { REVEAL, revealState, useReveal } from "@/components/site/use-reveal";
 
-function Invite() {
-  const [eyebrowRef, eyebrowVisible] = useReveal<HTMLDivElement>();
-  const [h2Ref, h2Visible] = useReveal<HTMLHeadingElement>();
-  const [pRef, pVisible] = useReveal<HTMLParagraphElement>();
-  const [ctaRef, ctaVisible] = useReveal<HTMLDivElement>();
+function Invite({ onJoin }: { onJoin: () => void }) {
+  const [ref, visible] = useReveal<HTMLDivElement>();
 
   return (
     <section
       id="invite"
-      className="bg-ink py-[clamp(80px,12vw,150px)] text-center text-cream"
+      className="overflow-hidden bg-ink px-6 py-[clamp(72px,10vw,124px)] text-cream sm:px-8"
     >
-      <div className="mx-auto max-w-[1140px] px-8">
-        <div
-          ref={eyebrowRef}
-          className={cn(
-            "mb-[26px] justify-center",
-            REVEAL,
-            revealState(eyebrowVisible),
-          )}
-        >
-          <Eyebrow className="justify-center">Come in</Eyebrow>
+      <div
+        ref={ref}
+        className={cn(
+          "relative mx-auto grid max-w-[1140px] grid-cols-[1.05fr_0.95fr] items-end gap-[clamp(38px,8vw,110px)] max-[760px]:grid-cols-1",
+          REVEAL,
+          revealState(visible),
+        )}
+      >
+        <div>
+          <Eyebrow className="mb-6">Join the current</Eyebrow>
+          <h2 className="font-display text-[clamp(58px,9.5vw,128px)] font-black uppercase leading-[0.84] tracking-[-0.055em]">
+            Join the <span className="text-lime">current.</span>
+          </h2>
         </div>
-        <h2
-          ref={h2Ref}
-          className={cn(
-            "font-display text-[clamp(52px,11vw,152px)] font-black uppercase leading-[0.98] tracking-[-0.03em] text-cream",
-            REVEAL,
-            revealState(h2Visible),
-          )}
-        >
-          Join the <span className="text-lime">current.</span>
-        </h2>
-        <p
-          ref={pRef}
-          className={cn(
-            "mx-auto mt-6 mb-11 max-w-[44ch] text-[clamp(19px,2.3vw,26px)] leading-[1.34] font-medium text-cream/60",
-            REVEAL,
-            revealState(pVisible),
-          )}
-        >
-          Be a member. Bring a partnership. Host a node in your city. However
-          you plug in, the tide rises for everyone in it.
-        </p>
-        <div
-          ref={ctaRef}
-          className={cn(
-            "flex flex-wrap justify-center gap-3.5",
-            REVEAL,
-            revealState(ctaVisible),
-          )}
-        >
-          <BrandButton asChild variant="primary">
-            <a href="#">Become a member</a>
-          </BrandButton>
-          <BrandButton asChild variant="ghost">
-            <a href="#">Partner with us</a>
-          </BrandButton>
-          <BrandButton asChild variant="ghost">
-            <a href="#">Host a node</a>
-          </BrandButton>
+        <div>
+          {/* TODO(Q2): Keep the corrected two-path sentence until the source doc is updated. */}
+          <p className="max-w-[44ch] text-[clamp(18px,2vw,24px)] leading-[1.48] text-cream/68">
+            Be a member. Bring a partnership. However you plug in, the tide
+            rises for everyone in it.
+          </p>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Button
+              variant="brand"
+              size="lg"
+              className="h-auto px-7 py-4 font-space text-[12px] font-bold tracking-[0.12em] uppercase"
+              onClick={onJoin}
+            >
+              Become a member
+            </Button>
+            <Button
+              asChild
+              variant="brand-outline"
+              size="lg"
+              className="h-auto border-cream/60 px-7 py-4 font-space text-[12px] font-bold tracking-[0.12em] text-cream uppercase hover:bg-cream/10"
+            >
+              <Link href="/sponsors">Partner with us</Link>
+            </Button>
+          </div>
         </div>
       </div>
     </section>

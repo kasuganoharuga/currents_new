@@ -8,13 +8,12 @@ import { SiteFooter } from "@/components/site/site-footer";
 import { SiteHeader } from "@/components/site/site-header";
 import { JoinButton } from "@/components/site/join-button";
 import { JoinDialog } from "@/components/site/join-dialog";
-import { BetSection } from "./bet-section";
 import { Constitution } from "./constitution";
 import { Hero } from "./hero";
 import { Invite } from "./invite";
+import { OurStory } from "./our-story";
 import { Pillars } from "./pillars";
 import { Rally } from "./rally";
-import { Voice } from "./voice";
 import { WhoPlugsIn } from "./who-plugs-in";
 
 function HomePage() {
@@ -27,17 +26,19 @@ function HomePage() {
 
   return (
     <div
-      className={`${archivo.variable} ${spaceMono.variable} overflow-x-hidden bg-cream font-display text-ink antialiased selection:bg-lime selection:text-ink`}
+      className={`${archivo.variable} ${spaceMono.variable} overflow-x-clip bg-cream font-display text-ink antialiased selection:bg-lime selection:text-ink`}
     >
       <SiteHeader cta={<JoinButton onClick={() => setJoinOpen(true)} />} />
-      <Hero />
-      <BetSection />
-      <Pillars />
-      <WhoPlugsIn />
-      <Rally />
-      <Constitution />
-      <Voice />
-      <Invite />
+      <main>
+        <Hero onJoin={() => setJoinOpen(true)} />
+        <OurStory />
+        <Pillars />
+        <WhoPlugsIn />
+        <Rally />
+        <Constitution />
+        {/* TODO(Q1): Voice remains in ./voice.tsx for a one-line restore, but is intentionally not rendered. */}
+        <Invite onJoin={() => setJoinOpen(true)} />
+      </main>
       <SiteFooter />
       <JoinDialog open={joinOpen} onOpenChange={setJoinOpen} />
     </div>

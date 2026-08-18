@@ -1,192 +1,156 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
-import { Tabs as TabsPrimitive } from "radix-ui";
 
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-import { Chip } from "@/components/site/chip";
-import { Eyebrow } from "@/components/site/eyebrow";
 import { REVEAL, revealState, useReveal } from "@/components/site/use-reveal";
 
-const TABS = [
+const PERSONAS = [
   {
-    id: "1",
-    n: "01",
-    t: "Founders",
-    who: "You're building something that doesn't exist yet. Time-poor, decision-rich, and done with rooms that are all pitch and no substance.",
-    bring:
+    id: "founders",
+    number: "01",
+    title: "Founders",
+    image: "/api/homepage-assets/persona-founders",
+    imageAlt: "Currents members connecting at an event",
+    imagePosition: "54% center",
+    description:
+      "You're building something that doesn't exist yet. Time-poor, decision-rich, and done with rooms that are all pitch and no substance.",
+  },
+  {
+    id: "investors",
+    number: "02",
+    title: "Investors",
+    image: "/api/homepage-assets/persona-investors",
+    imageAlt: "A lively Currents gathering on the Gold Coast",
+    imagePosition: "center",
+    description:
       "Currents is where you meet the people a step ahead of you, and hand back what you've already cracked.",
   },
   {
-    id: "2",
-    n: "02",
-    t: "Operators",
-    who: "You're the one who makes it actually run. The systems, the delivery, the unglamorous engine behind someone's big idea.",
-    bring:
-      "Here you find the other operators, the shortcuts they've earned the hard way, and the recognition the work rarely gets.",
+    id: "innovators",
+    number: "03",
+    title: "Innovators",
+    image: "/api/homepage-assets/persona-innovators",
+    imageAlt: "Currents guests gathering inside a creative venue",
+    imagePosition: "center",
+    description:
+      "You are a pioneer! Making a change, and creating value in a brand new way.",
   },
-  {
-    id: "3",
-    n: "03",
-    t: "Investors",
-    who: "You're looking for signal before it's obvious. Real people building real things, not a pitch-deck parade.",
-    bring:
-      "Currents puts you in the room early, close to the founders and the momentum, on the same level as everyone else.",
-  },
-];
+] as const;
 
-const ECO_CHIPS: { label: string; who: string; bring: string }[] = [
-  {
-    label: "Media",
-    who: "You tell the stories that make things real and put the work in front of the people who need to see it.",
-    bring:
-      "Currents is your beat and your amplifier. Placeholder, persona to refine.",
-  },
-  {
-    label: "Health professionals",
-    who: "You keep the builders standing, mind and body, when the pace tries to break them.",
-    bring:
-      "A community that treats wellbeing as infrastructure, not an afterthought. Placeholder, persona to refine.",
-  },
-  {
-    label: "Artists",
-    who: "You build bodies of work, not startups. That's building too.",
-    bring:
-      "A room that values the craft as much as the cap table. Placeholder, persona to refine.",
-  },
-  {
-    label: "Venues",
-    who: "You hold the space where things actually happen.",
-    bring:
-      "Currents fills your room and your calendar, and makes you part of the network. Placeholder, persona to refine.",
-  },
-  {
-    label: "Professional services",
-    who: "You're the scaffolding. Legal, finance, the work that keeps a build standing.",
-    bring:
-      "Give first here and the work follows the relationship. Placeholder, persona to refine.",
-  },
-];
-
-function TabTriggerButton({ id, n, t }: { id: string; n: string; t: string }) {
+function PersonaVisual({
+  persona,
+  compact = false,
+}: {
+  persona: (typeof PERSONAS)[number];
+  compact?: boolean;
+}) {
   return (
-    <TabsPrimitive.Trigger
-      value={id}
+    <div
       className={cn(
-        "flex items-baseline gap-4 border-l-[3px] border-ink/12 py-[18px] pl-5 text-left font-display text-ink/40 transition-[border-color,color,padding-left] duration-250",
-        "hover:pl-[26px] hover:text-ink/60",
-        "data-[state=active]:border-l-lime data-[state=active]:text-ink data-[state=active]:hover:pl-5",
+        "relative overflow-hidden bg-ink text-white",
+        compact ? "aspect-[4/3]" : "aspect-[4/5]",
       )}
     >
-      <span className="flex-none font-space text-xs tracking-[0.1em] opacity-60">
-        {n}
+      <Image
+        src={persona.image}
+        alt={persona.imageAlt}
+        fill
+        sizes={compact ? "(max-width: 700px) 100vw, 0px" : "33vw"}
+        className="object-cover saturate-[0.86] transition-transform duration-500 group-hover:scale-[1.025]"
+        style={{ objectPosition: persona.imagePosition }}
+      />
+      <div className="absolute inset-0 bg-gradient-to-t from-ink/90 via-ink/8 to-ink/15" />
+      <div className="absolute -top-[18%] -right-[35%] size-[78%] rounded-full bg-lime/45 mix-blend-color" />
+      <span className="absolute top-4 left-4 font-space text-[10px] tracking-[0.18em] text-lime">
+        {persona.number}
       </span>
-      <span className="text-[clamp(22px,2.8vw,34px)] font-black uppercase leading-none tracking-[-0.02em]">
-        {t}
+      <span className="absolute right-4 bottom-4 left-4 text-left font-display text-[clamp(24px,2.8vw,38px)] font-black uppercase leading-none tracking-[-0.03em]">
+        {persona.title}
       </span>
-    </TabsPrimitive.Trigger>
-  );
-}
-
-function PersonaCopy({ who, bring }: { who: string; bring: string }) {
-  return (
-    <>
-      <p className="mb-2.5 max-w-[56ch] text-[19px] font-semibold leading-[1.42]">
-        {who}
-      </p>
-      <p className="max-w-[56ch] text-base leading-[1.55] text-ink/60">
-        {bring}
-      </p>
-    </>
-  );
-}
-
-function EcosystemPanel() {
-  const [chip, setChip] = useState(0);
-  const active = ECO_CHIPS[chip];
-  return (
-    <div>
-      <p className="mb-2.5 max-w-[56ch] text-[19px] font-semibold leading-[1.42]">
-        Not the sideline. The environment innovation grows in. You might not be
-        a founder today; you might be one tomorrow. This community is for all of
-        us.
-      </p>
-      <div className="my-[22px] mb-5 flex flex-wrap gap-2.5">
-        {ECO_CHIPS.map((c, i) => (
-          <Chip key={c.label} on={chip === i} onClick={() => setChip(i)}>
-            {c.label}
-          </Chip>
-        ))}
-      </div>
-      <div className="border-l-[3px] border-lime pl-[18px]">
-        <PersonaCopy who={active.who} bring={active.bring} />
-      </div>
     </div>
   );
 }
 
 function WhoPlugsIn() {
+  const [active, setActive] = useState<(typeof PERSONAS)[number]["id"]>(
+    PERSONAS[0].id,
+  );
   const [headRef, headVisible] = useReveal<HTMLDivElement>();
   const [bodyRef, bodyVisible] = useReveal<HTMLDivElement>();
 
   return (
-    <section id="who" className="py-[clamp(72px,11vw,140px)]">
-      <div className="mx-auto max-w-[1140px] px-8">
+    <section id="who" className="px-6 py-[clamp(64px,9vw,108px)] sm:px-8">
+      <div className="mx-auto max-w-[1140px]">
         <div
           ref={headRef}
           className={cn(
-            "mb-[clamp(34px,5vw,64px)]",
+            "mb-[clamp(28px,4vw,48px)]",
             REVEAL,
             revealState(headVisible),
           )}
         >
-          <Eyebrow>Who plugs in</Eyebrow>
+          <h2 className="font-display text-[clamp(44px,6.4vw,82px)] font-black uppercase leading-[0.9] tracking-[-0.04em]">
+            Who plugs in
+          </h2>
         </div>
 
-        <TabsPrimitive.Root
-          defaultValue="1"
+        <Tabs
+          value={active}
+          onValueChange={(value) =>
+            setActive(value as (typeof PERSONAS)[number]["id"])
+          }
           ref={bodyRef}
-          className={cn(
-            "grid grid-cols-[0.85fr_1.15fr] gap-[clamp(24px,4vw,56px)] max-[820px]:grid-cols-1 max-[820px]:gap-6",
-            REVEAL,
-            revealState(bodyVisible),
-          )}
+          className={cn(REVEAL, revealState(bodyVisible))}
         >
-          <TabsPrimitive.List className="flex flex-col">
-            {TABS.map((tab) => (
-              <TabTriggerButton key={tab.id} id={tab.id} n={tab.n} t={tab.t} />
-            ))}
-            <TabsPrimitive.Trigger
-              value="4"
-              className={cn(
-                "flex items-baseline gap-4 border-l-[3px] border-ink/12 py-[18px] pl-5 text-left font-display text-ink/40 transition-[border-color,color,padding-left] duration-250",
-                "hover:pl-[26px] hover:text-ink/60",
-                "data-[state=active]:border-l-lime data-[state=active]:text-ink data-[state=active]:hover:pl-5",
-              )}
-            >
-              <span className="flex-none font-space text-xs tracking-[0.1em] opacity-60">
-                04
-              </span>
-              <span className="text-[clamp(22px,2.8vw,34px)] font-black uppercase leading-none tracking-[-0.02em]">
-                The Ecosystem
-              </span>
-            </TabsPrimitive.Trigger>
-          </TabsPrimitive.List>
-
-          <div className="relative min-h-[210px] border-t border-ink/12 pt-[26px] max-[820px]:min-h-0">
-            {TABS.map((tab) => (
-              <TabsPrimitive.Content key={tab.id} value={tab.id}>
-                <PersonaCopy who={tab.who} bring={tab.bring} />
-                <span className="mt-3.5 block font-space text-[10px] tracking-[0.18em] text-ink/40 uppercase">
-                  Placeholder, persona to refine
+          <TabsList
+            className="grid h-auto w-full grid-cols-3 gap-3 bg-transparent p-0 max-[700px]:gap-1.5"
+            style={{ height: "auto" }}
+          >
+            {PERSONAS.map((persona) => (
+              <TabsTrigger
+                key={persona.id}
+                value={persona.id}
+                className="group h-auto overflow-hidden rounded-none border border-ink/12 bg-transparent p-0 text-ink after:hidden hover:text-ink data-[state=active]:border-ink data-[state=active]:bg-transparent data-[state=active]:ring-4 data-[state=active]:ring-lime max-[700px]:rounded-full max-[700px]:px-2 max-[700px]:py-3 max-[700px]:font-space max-[700px]:text-[10px] max-[700px]:tracking-[0.08em] max-[700px]:uppercase max-[700px]:data-[state=active]:bg-lime max-[700px]:data-[state=active]:ring-0"
+              >
+                <span className="w-full max-[700px]:hidden">
+                  <PersonaVisual persona={persona} />
                 </span>
-              </TabsPrimitive.Content>
+                <span className="hidden max-[700px]:block">
+                  {persona.title}
+                </span>
+              </TabsTrigger>
             ))}
-            <TabsPrimitive.Content value="4">
-              <EcosystemPanel />
-            </TabsPrimitive.Content>
-          </div>
-        </TabsPrimitive.Root>
+          </TabsList>
+
+          {PERSONAS.map((persona) => (
+            <TabsContent key={persona.id} value={persona.id} className="mt-3">
+              <div className="grid grid-cols-[0.55fr_1px_1.45fr] items-center gap-[clamp(24px,4vw,52px)] bg-ink px-[clamp(26px,4vw,52px)] py-[clamp(28px,4vw,50px)] text-cream max-[700px]:grid-cols-1 max-[700px]:gap-5">
+                <div>
+                  <span className="font-space text-[10px] tracking-[0.18em] text-lime">
+                    {persona.number}
+                  </span>
+                  <h3 className="mt-2 font-display text-[clamp(32px,4.2vw,54px)] font-black uppercase leading-none tracking-[-0.03em]">
+                    {persona.title}
+                  </h3>
+                </div>
+                <Separator
+                  orientation="vertical"
+                  className="h-full bg-cream/18 max-[700px]:hidden"
+                />
+                <p className="max-w-[56ch] text-[clamp(17px,1.8vw,21px)] leading-[1.52] text-cream/72">
+                  {persona.description}
+                </p>
+                <div className="hidden max-[700px]:block">
+                  <PersonaVisual persona={persona} compact />
+                </div>
+              </div>
+            </TabsContent>
+          ))}
+        </Tabs>
       </div>
     </section>
   );
