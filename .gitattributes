@@ -1,0 +1,2 @@
+# Migration checksums are content hashes, so these must not vary by platform.
+*.sql text eol=lf

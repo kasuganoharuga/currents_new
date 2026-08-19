@@ -86,6 +86,7 @@ jobs:
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           MEMBER_APPLICATION_CLAIM_SECRET: ${{ secrets.MEMBER_APPLICATION_CLAIM_SECRET }}
+          GEONAMES_USERNAME: ${{ secrets.GEONAMES_USERNAME }}
         run: |
           set -euo pipefail
           if [ -z "${LUMA_API_KEY}" ]; then
@@ -95,7 +96,7 @@ jobs:
 
           # Auth secrets are optional until configured — deploy still ships the
           # marketing site; join/OTP/Google stay inactive without them.
-          for name in BETTER_AUTH_SECRET GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET MEMBER_APPLICATION_CLAIM_SECRET; do
+          for name in BETTER_AUTH_SECRET GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET MEMBER_APPLICATION_CLAIM_SECRET GEONAMES_USERNAME; do
             if [ -z "${!name}" ]; then
               echo "warning: ${name} not set; auth env will not be injected" >&2
             fi
@@ -115,6 +116,7 @@ jobs:
             --arg google_client_id "${GOOGLE_CLIENT_ID}" \
             --arg google_client_secret "${GOOGLE_CLIENT_SECRET}" \
             --arg member_application_claim_secret "${MEMBER_APPLICATION_CLAIM_SECRET}" \
+            --arg geonames_username "${GEONAMES_USERNAME}" \
             '
               def put($n; $v):
                 if ($v | length) == 0 then . else . + [{"name": $n, "value": $v}] end;
@@ -127,13 +129,15 @@ jobs:
                       .name != "BETTER_AUTH_SECRET" and
                       .name != "GOOGLE_CLIENT_ID" and
                       .name != "GOOGLE_CLIENT_SECRET" and
-                      .name != "MEMBER_APPLICATION_CLAIM_SECRET"
+                      .name != "MEMBER_APPLICATION_CLAIM_SECRET" and
+                      .name != "GEONAMES_USERNAME"
                     )))
                     | put("LUMA_API_KEY"; $luma_api_key)
                     | put("BETTER_AUTH_SECRET"; $better_auth_secret)
                     | put("GOOGLE_CLIENT_ID"; $google_client_id)
                     | put("GOOGLE_CLIENT_SECRET"; $google_client_secret)
                     | put("MEMBER_APPLICATION_CLAIM_SECRET"; $member_application_claim_secret)
+                    | put("GEONAMES_USERNAME"; $geonames_username)
                   )
                 else . end
               )

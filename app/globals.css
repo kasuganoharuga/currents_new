@@ -199,4 +199,25 @@
   .themed-scrollbar::-webkit-scrollbar-thumb:hover {
     background-color: rgba(11, 11, 11, 0.4);
   }
+
+  /* Same treatment for dark surfaces, where the ink thumb is invisible. */
+  .themed-scrollbar-dark {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(251, 244, 232, 0.24) transparent;
+  }
+  .themed-scrollbar-dark::-webkit-scrollbar {
+    width: 9px;
+  }
+  .themed-scrollbar-dark::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .themed-scrollbar-dark::-webkit-scrollbar-thumb {
+    background-color: rgba(251, 244, 232, 0.24);
+    border-radius: 9999px;
+    border: 2.5px solid transparent;
+    background-clip: padding-box;
+  }
+  .themed-scrollbar-dark::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(251, 244, 232, 0.42);
+  }
 }

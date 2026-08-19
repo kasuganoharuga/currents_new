@@ -4,10 +4,11 @@ function JoinButton({ onClick }: { onClick: () => void }) {
   return (
     <Button
       variant="brand"
-      className="h-auto px-[18px] py-[9px] font-space text-xs font-bold tracking-[0.12em] uppercase max-[480px]:px-3 max-[480px]:text-[9px]"
+      className="h-auto px-[18px] py-[9px] font-space text-xs font-bold tracking-[0.12em] uppercase max-[560px]:px-4"
       onClick={onClick}
     >
-      Join the community
+      <span className="max-[560px]:hidden">Join the community</span>
+      <span className="min-[560px]:hidden">Join</span>
     </Button>
   );
 }

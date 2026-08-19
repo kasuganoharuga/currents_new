@@ -21,7 +21,12 @@ interface MigrationFile {
 }
 
 function checksumOf(sql: string): string {
-  return createHash("sha256").update(sql, "utf8").digest("hex");
+  // Hash with normalized line endings so a file checked out with CRLF on
+  // Windows matches the checksum recorded from an LF checkout — otherwise an
+  // untouched migration reads as edited and blocks the whole run.
+  return createHash("sha256")
+    .update(sql.replace(/\r\n/g, "\n"), "utf8")
+    .digest("hex");
 }
 
 async function loadMigrationFiles(): Promise<MigrationFile[]> {

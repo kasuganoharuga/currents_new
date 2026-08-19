@@ -1,17 +1,34 @@
+import { z } from "zod";
+
 import { getPool } from "@/lib/db";
 import { createClaimToken } from "@/lib/member-applications/claim";
 
-const CATEGORIES = new Set(["Founder", "Investor", "Operator", "Eco-System"]);
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const CATEGORIES = ["founder", "investor", "operator", "ecosystem"] as const;
 
-function stringValue(
-  record: Record<string, unknown>,
-  key: string,
-  maxLength: number,
-): string {
-  const value = record[key];
-  return typeof value === "string" ? value.trim().slice(0, maxLength) : "";
-}
+const trimmed = (max: number) => z.string().trim().max(max);
+const required = (max: number) => trimmed(max).min(1);
+
+const ApplicationSchema = z.object({
+  name: required(120),
+  // Order matters: trim/lowercase must run before the format check, and
+  // chaining off z.email() itself applies checks before those transforms —
+  // so build the pipeline on a plain string and apply .email() last.
+  email: z.string().trim().toLowerCase().max(254).email(),
+  category: z.enum(CATEGORIES),
+  linkedin: required(500),
+  countryCode: required(8),
+  countryName: required(120),
+  stateCode: required(16),
+  stateName: required(120),
+  cityId: required(40),
+  cityName: required(120),
+  whatsapp: trimmed(40).optional(),
+  lookingFor: trimmed(160).optional(),
+  heardAbout: trimmed(160).optional(),
+});
+
+const VALIDATION_ERROR =
+  "Please fill in your name, email, location, LinkedIn URL and role.";
 
 export async function POST(request: Request) {
   let input: unknown;
@@ -34,30 +51,48 @@ export async function POST(request: Request) {
 
   const record = input as Record<string, unknown>;
 
-  if (stringValue(record, "website", 200)) {
+  const website =
+    typeof record.website === "string" ? record.website.trim() : "";
+  if (website) {
     return Response.json({ ok: true }, { status: 201 });
   }
 
-  const name = stringValue(record, "name", 120);
-  const email = stringValue(record, "email", 254).toLowerCase();
-  const category = stringValue(record, "category", 40);
+  const parsed = ApplicationSchema.safeParse(record);
 
-  if (!name || !EMAIL_PATTERN.test(email) || !CATEGORIES.has(category)) {
-    return Response.json(
-      { error: "Please enter your name, email and category." },
-      { status: 400 },
-    );
+  if (!parsed.success) {
+    return Response.json({ error: VALIDATION_ERROR }, { status: 400 });
   }
+
+  const {
+    name,
+    email,
+    category,
+    linkedin,
+    countryCode,
+    countryName,
+    stateCode,
+    stateName,
+    cityId,
+    cityName,
+    whatsapp,
+    lookingFor,
+    heardAbout,
+  } = parsed.data;
 
   const values = [
     name,
     email,
-    stringValue(record, "location", 160) || null,
-    stringValue(record, "whatsapp", 40) || null,
-    stringValue(record, "linkedin", 500) || null,
+    whatsapp || null,
+    linkedin,
     category,
-    stringValue(record, "lookingFor", 160) || null,
-    stringValue(record, "heardAbout", 160) || null,
+    lookingFor || null,
+    heardAbout || null,
+    countryCode,
+    countryName,
+    stateCode,
+    stateName,
+    cityId,
+    cityName,
   ];
 
   try {
@@ -65,13 +100,18 @@ export async function POST(request: Request) {
       `insert into member_applications (
         name,
         email,
-        location,
         whatsapp,
         linkedin_url,
         category,
         looking_for,
-        heard_about
-      ) values ($1, $2, $3, $4, $5, $6, $7, $8)
+        heard_about,
+        country_code,
+        country_name,
+        state_code,
+        state_name,
+        city_id,
+        city_name
+      ) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
       returning id`,
       values,
     );
