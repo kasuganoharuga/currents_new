@@ -49,10 +49,10 @@ function JoinCta({ onOpenJoin }: { onOpenJoin: () => void }) {
         </p>
         <div ref={btnRef} className={cn(REVEAL, revealState(btnVisible))}>
           <button
-            className="rounded-full bg-ink px-[30px] py-4 font-space text-sm font-bold tracking-[0.14em] text-cream uppercase transition-colors hover:bg-black"
+            className="rounded-full bg-lime px-[30px] py-4 font-space text-sm font-bold tracking-[0.14em] text-ink uppercase transition-[background-color,transform] hover:-translate-y-px hover:bg-cream"
             onClick={onOpenJoin}
           >
-            Become part of Currents
+            Join the community
           </button>
         </div>
       </div>

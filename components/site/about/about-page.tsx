@@ -12,7 +12,9 @@ import { CreateSection } from "./create-section";
 import { FractalSection } from "./fractal-section";
 import { JoinCta } from "./join-cta";
 import { AboutHero } from "./about-hero";
-import { RailsDiagram } from "./rails-diagram";
+import { WhatWeDo } from "./what-we-do";
+import { WhatWeDoForThem } from "./what-we-do-for-them";
+import { WhyWeExist } from "./why-we-exist";
 
 function AboutPage() {
   const [joinOpen, setJoinOpen] = useState(false);
@@ -23,8 +25,11 @@ function AboutPage() {
     >
       <SiteHeader cta={<JoinButton onClick={() => setJoinOpen(true)} />} />
       <AboutHero />
+      <WhyWeExist />
       <FractalSection />
-      <RailsDiagram />
+      {/* TODO(Q1): This standalone section can also be rendered on Home if Kenji confirms it. */}
+      <WhatWeDo />
+      <WhatWeDoForThem />
       <BusinessModel />
       <CreateSection />
       <JoinCta onOpenJoin={() => setJoinOpen(true)} />

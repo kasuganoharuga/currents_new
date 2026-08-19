@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 
 import { cn } from "@/lib/utils";
@@ -314,7 +315,10 @@ function FractalSection() {
   const [sameRef, sameVisible] = useReveal<HTMLParagraphElement>();
 
   return (
-    <section className="bg-ink py-[clamp(72px,11vw,132px)] text-cream">
+    <section
+      id="the-model"
+      className="bg-ink py-[clamp(72px,11vw,132px)] text-cream"
+    >
       <div className="mx-auto max-w-[1140px] px-8">
         <div
           ref={sectionHeadRef}
@@ -406,32 +410,62 @@ function FractalSection() {
         </div>
 
         <div
+          id="relationships"
           ref={moatRef}
           className={cn(
-            "mt-[clamp(40px,6vw,64px)] max-w-[22ch]",
+            "mt-[clamp(48px,7vw,82px)] grid grid-cols-[0.72fr_1.28fr] items-center gap-[clamp(36px,7vw,88px)] max-[820px]:grid-cols-1",
             REVEAL,
             revealState(moatVisible),
           )}
         >
-          <div className="text-[clamp(28px,4.6vw,54px)] font-black leading-[1.04] tracking-[-0.02em]">
-            Our moat is{" "}
-            <span className="text-lime">
-              the strength of our relationships.
-            </span>{" "}
-            The nodes innovate and are agents of change.
+          <div>
+            <div className="max-w-[15ch] text-[clamp(30px,3.5vw,46px)] font-black leading-[1.05] tracking-[-0.02em]">
+              The strength of our{" "}
+              <span className="text-lime">relationships</span> is our moat.
+            </div>
+            <p
+              ref={sameRef}
+              className={cn(
+                "mt-7 max-w-[38ch] font-space text-[13px] leading-[1.7] tracking-[0.02em] text-cream/60",
+                REVEAL,
+                revealState(sameVisible),
+              )}
+            >
+              We&apos;re all part of the same current, one that amplifies you
+              and pressure-tests you. Never an echo chamber.
+            </p>
+          </div>
+
+          <div className="grid h-[460px] grid-cols-2 grid-rows-[1.2fr_0.8fr] gap-3 min-[821px]:h-[clamp(360px,39vw,500px)] min-[821px]:grid-cols-12 min-[821px]:grid-rows-2">
+            <div className="relative col-span-2 overflow-hidden rounded-[6px] min-[821px]:col-span-7 min-[821px]:row-span-2">
+              <Image
+                src="/about-assets/kenji-reserve/mondrian-114.webp"
+                alt="Currents members exchanging ideas at a community gathering"
+                fill
+                sizes="(max-width: 820px) 100vw, 36vw"
+                className="object-cover"
+              />
+            </div>
+            <div className="relative overflow-hidden rounded-[6px] min-[821px]:col-span-5">
+              <Image
+                src="/about-assets/kenji-reserve/mondrian-108.webp"
+                alt="Currents members gathered together at an event"
+                fill
+                sizes="(max-width: 820px) 50vw, 25vw"
+                className="object-cover"
+              />
+            </div>
+            <div className="relative overflow-hidden rounded-[6px] min-[821px]:col-span-5">
+              <Image
+                src="/about-assets/kenji-reserve/mondrian-101.webp"
+                alt="Three Currents members at a community event"
+                fill
+                sizes="(max-width: 820px) 50vw, 25vw"
+                className="object-cover"
+              />
+            </div>
           </div>
         </div>
-        <p
-          ref={sameRef}
-          className={cn(
-            "mt-[30px] max-w-[48ch] font-space text-sm leading-[1.6] tracking-[0.02em] text-cream/60",
-            REVEAL,
-            revealState(sameVisible),
-          )}
-        >
-          We&apos;re all part of the same current, one that amplifies you and
-          pressure-tests you. Never an echo chamber.
-        </p>
       </div>
     </section>
   );
