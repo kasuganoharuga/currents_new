@@ -25,39 +25,27 @@ const PRINCIPLES = [
   },
   {
     number: "P/03",
-    title: "Front line leadership; We lead, not plead",
+    title: "Front line leadership",
     subtext:
       "Leadership starts where the work is. We step forward, take responsibility, and show the way through action.",
   },
   {
     number: "P/04",
-    title: "We're all open to feedback",
-    subtext:
-      "Feedback is how the work gets better and trust stays real. We give it clearly, receive it without ego, and act on what helps.",
-  },
-  {
-    number: "P/05",
-    title: "We will disagree, it's how you do it",
-    subtext:
-      "Different views make the work sharper. We challenge ideas directly, stay curious, and never make disagreement personal.",
-  },
-  {
-    number: "P/06",
     title: "We fight the problem not each other",
     subtext:
       "Pressure points us toward the issue, not at each other. We stay on the same side and put our energy into the solution.",
   },
   {
-    number: "P/07",
-    title: "If you believe it, speak it; Be transparent",
+    number: "P/05",
+    title: "If you believe it, speak it",
     subtext:
       "Say the important thing while it can still help. We share context, name concerns early, and make our intentions visible.",
   },
   {
-    number: "P/08",
-    title: "We are experts at conflict resolution",
+    number: "P/06",
+    title: "We will disagree, it's how you do it",
     subtext:
-      "Conflict is not failure; leaving it unresolved is. We listen to understand, find common ground, and leave the relationship stronger.",
+      "Different views make the work sharper. We challenge ideas directly, stay curious, and never make disagreement personal.",
   },
 ] as const;
 
@@ -68,13 +56,13 @@ function Constitution() {
   return (
     <section
       id="constitution"
-      className="border-y border-ink/10 bg-cream-2 px-6 py-[clamp(64px,9vw,108px)] sm:px-8"
+      className="border-y border-ink/10 bg-cream-2 px-6 py-[clamp(50px,7vw,82px)] sm:px-8"
     >
       <div className="mx-auto max-w-[1140px]">
         <div
           ref={introRef}
           className={cn(
-            "mb-[clamp(34px,5vw,56px)] grid grid-cols-[0.8fr_1.2fr] gap-[clamp(32px,6vw,88px)] max-[760px]:grid-cols-1",
+            "mb-[clamp(28px,4vw,42px)] grid grid-cols-[0.8fr_1.2fr] gap-[clamp(28px,5vw,72px)] max-[760px]:grid-cols-1",
             REVEAL,
             revealState(introVisible),
           )}
@@ -108,7 +96,7 @@ function Constitution() {
               value={principle.number}
               className="border-0 bg-cream px-[clamp(18px,2.4vw,30px)] data-[state=open]:bg-lime"
             >
-              <AccordionTrigger className="min-h-[104px] gap-6 py-6 text-left hover:no-underline [&>svg]:mt-1 [&>svg]:text-ink/45">
+              <AccordionTrigger className="min-h-[90px] gap-6 py-5 text-left hover:no-underline [&>svg]:mt-1 [&>svg]:text-ink/45">
                 <span className="grid grid-cols-[48px_1fr] items-start gap-3">
                   <span className="pt-1 font-space text-[10px] tracking-[0.12em] text-ink/45">
                     {principle.number}

@@ -23,9 +23,9 @@ const PERSONAS = [
     id: "investors",
     number: "02",
     title: "Investor",
-    image: "/api/homepage-assets/persona-investors",
-    imageAlt: "A lively Currents gathering on the Gold Coast",
-    imagePosition: "center",
+    image: "/api/homepage-assets/community-network",
+    imageAlt: "Currents members strengthening their local network",
+    imagePosition: "50% center",
     description:
       "Currents is where you meet the people a step ahead of you, and hand back what you've already cracked.",
   },
@@ -43,9 +43,9 @@ const PERSONAS = [
     id: "ecosystem",
     number: "04",
     title: "Eco-System",
-    image: "/api/homepage-assets/community-network",
-    imageAlt: "Currents members strengthening their local network",
-    imagePosition: "50% center",
+    image: "/api/homepage-assets/persona-investors",
+    imageAlt: "A lively Currents gathering on the Gold Coast",
+    imagePosition: "center",
     description:
       "You connect the people, places, and resources around innovation—opening doors, strengthening networks, and helping the whole community move forward.",
   },
@@ -70,11 +70,10 @@ function PersonaVisual({
         alt={persona.imageAlt}
         fill
         sizes={compact ? "(max-width: 700px) 100vw, 0px" : "25vw"}
-        className="object-cover saturate-[0.86] transition-transform duration-500 group-hover:scale-[1.025]"
+        className="object-cover transition-transform duration-500 group-hover:scale-[1.025]"
         style={{ objectPosition: persona.imagePosition }}
       />
       <div className="absolute inset-0 bg-gradient-to-t from-ink/90 via-ink/8 to-ink/15" />
-      <div className="absolute -top-[18%] -right-[35%] size-[78%] rounded-full bg-lime/45 mix-blend-color" />
       <span className="absolute top-4 left-4 font-space text-[10px] tracking-[0.18em] text-lime">
         {persona.number}
       </span>
@@ -142,7 +141,7 @@ function WhoPlugsIn() {
               value={persona.id}
               className="mt-3 w-full"
             >
-              <div className="grid w-full grid-cols-[minmax(0,26%)_1px_minmax(0,1fr)] items-center gap-[clamp(24px,4vw,52px)] bg-ink px-[clamp(26px,4vw,52px)] py-[clamp(28px,4vw,50px)] text-cream max-[700px]:grid-cols-1 max-[700px]:gap-5">
+              <div className="grid h-[240px] w-full grid-cols-[26%_1px_minmax(0,1fr)] items-center gap-[clamp(24px,4vw,52px)] bg-ink px-[clamp(26px,4vw,52px)] py-[clamp(28px,4vw,50px)] text-cream max-[700px]:h-auto max-[700px]:grid-cols-1 max-[700px]:gap-5">
                 <div className="min-w-0">
                   <span className="font-space text-[10px] tracking-[0.18em] text-lime">
                     {persona.number}

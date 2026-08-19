@@ -8,12 +8,13 @@ import { SiteFooter } from "@/components/site/site-footer";
 import { SiteHeader } from "@/components/site/site-header";
 import { JoinButton } from "@/components/site/join-button";
 import { JoinDialog } from "@/components/site/join-dialog";
+import { ConnectionSections } from "./connection-sections";
 import { Constitution } from "./constitution";
 import { Hero } from "./hero";
-import { Invite } from "./invite";
 import { OurStory } from "./our-story";
 import { Pillars } from "./pillars";
 import { Rally } from "./rally";
+import { Testimonials } from "./testimonials";
 import { WhoPlugsIn } from "./who-plugs-in";
 
 function HomePage() {
@@ -34,10 +35,11 @@ function HomePage() {
         <OurStory />
         <Pillars />
         <WhoPlugsIn />
-        <Rally />
+        <ConnectionSections />
+        <Testimonials />
         <Constitution />
         {/* TODO(Q1): Voice remains in ./voice.tsx for a one-line restore, but is intentionally not rendered. */}
-        <Invite onJoin={() => setJoinOpen(true)} />
+        <Rally onJoin={() => setJoinOpen(true)} />
       </main>
       <SiteFooter />
       <JoinDialog open={joinOpen} onOpenChange={setJoinOpen} />

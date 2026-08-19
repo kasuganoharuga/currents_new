@@ -272,12 +272,12 @@ function JoinDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="themed-scrollbar max-h-[90vh] max-w-[720px] overflow-y-auto rounded-lg border-0 bg-cream p-[clamp(28px,5vw,52px)] font-display text-ink sm:max-w-[720px]">
-        <DialogTitle className="sr-only">Become a member</DialogTitle>
+        <DialogTitle className="sr-only">Join the community</DialogTitle>
 
         {step === "questionnaire" && (
           <div>
             <div className="font-space text-[10px] tracking-[0.24em] text-ink/45 uppercase">
-              Become a member
+              Join the community
             </div>
             <h3 className="mt-3 text-[clamp(28px,4vw,42px)] font-black uppercase leading-[1.02] tracking-[-0.02em]">
               We&apos;d love for you to apply.

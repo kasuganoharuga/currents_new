@@ -8,6 +8,7 @@
   --cream-2: #f3ead8;
   --ink: #0b0b0b;
   --lime: #e4fc54;
+  --current-blue: #315e78;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -55,6 +56,7 @@
   --color-cream-2: var(--cream-2);
   --color-ink: var(--ink);
   --color-lime: var(--lime);
+  --color-current-blue: var(--current-blue);
   --font-display: var(--font-archivo);
   --font-space: var(--font-space-mono);
   --color-background: var(--background);

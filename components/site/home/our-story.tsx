@@ -14,12 +14,12 @@ const STORY = [
 
 const STORY_IMAGES = [
   {
-    src: "/api/homepage-assets/story-overview",
-    position: "52% center",
+    src: "/homepage-assets/story-community-new.webp",
+    position: "58% center",
   },
   {
-    src: "/api/homepage-assets/story-conversation",
-    position: "58% center",
+    src: "/api/homepage-assets/community-mixer",
+    position: "52% center",
   },
   {
     src: "/api/homepage-assets/story-connection",
@@ -31,7 +31,7 @@ function OurStory() {
   const [ref, visible] = useReveal<HTMLDivElement>();
 
   return (
-    <section className="relative isolate flex min-h-[620px] items-center overflow-hidden bg-[#292d16] px-6 py-[clamp(80px,10vw,132px)] text-cream sm:px-8">
+    <section className="relative isolate flex min-h-[620px] items-center overflow-hidden bg-ink px-6 py-[clamp(80px,10vw,132px)] text-cream sm:px-8">
       <div
         aria-hidden="true"
         className="absolute inset-0 -z-30 grid grid-cols-[1.05fr_0.95fr_1fr] max-[760px]:block"
@@ -50,7 +50,7 @@ function OurStory() {
               alt=""
               fill
               sizes={index === 0 ? "(max-width: 760px) 100vw, 35vw" : "33vw"}
-              className="object-cover saturate-[0.72] contrast-[1.04]"
+              className="object-cover opacity-90 saturate-[0.74] contrast-[1.04]"
               style={{ objectPosition: image.position }}
             />
           </div>
@@ -58,15 +58,11 @@ function OurStory() {
       </div>
       <div
         aria-hidden="true"
-        className="absolute inset-0 -z-20 bg-[#343916]/78 mix-blend-multiply"
+        className="absolute inset-0 -z-10 bg-current-blue/30 mix-blend-color"
       />
       <div
         aria-hidden="true"
-        className="absolute inset-0 -z-10 bg-lime/12 mix-blend-color"
-      />
-      <div
-        aria-hidden="true"
-        className="absolute inset-0 -z-10 bg-gradient-to-b from-ink/18 via-transparent to-ink/35"
+        className="absolute inset-0 -z-10 bg-gradient-to-b from-ink/12 via-transparent to-ink/28"
       />
       <div
         ref={ref}

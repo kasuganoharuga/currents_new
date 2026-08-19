@@ -55,13 +55,12 @@ function HeroImage({
               fill
               loading="eager"
               sizes="(max-width: 860px) 360px, 22vw"
-              className="object-cover saturate-[0.82] contrast-[1.04]"
+              className="object-cover"
               style={{ objectPosition: image.objectPosition }}
             />
           </div>
         ))}
       </div>
-      <div className="absolute inset-0 bg-lime/12 mix-blend-color" />
     </div>
   );
 }
@@ -126,8 +125,8 @@ function Hero({ onJoin }: { onJoin: () => void }) {
               objectPosition: "50% center",
             },
             {
-              src: "/api/homepage-assets/community-women",
-              objectPosition: "64% center",
+              src: "/api/homepage-assets/community-portrait",
+              objectPosition: "50% 42%",
             },
           ]}
           className="max-[860px]:hidden"
@@ -165,7 +164,7 @@ function Hero({ onJoin }: { onJoin: () => void }) {
             className="mt-9 h-auto px-8 py-4 font-space text-[12px] font-bold tracking-[0.14em] uppercase"
             onClick={onJoin}
           >
-            Become a member
+            Join the community
           </Button>
         </div>
 
