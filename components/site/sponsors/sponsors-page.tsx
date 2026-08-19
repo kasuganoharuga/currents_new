@@ -19,7 +19,8 @@ const CONTACT_EMAIL = "hello@currentscommunity.com";
 type Sponsor = {
   name: string;
   role: string;
-  href: string;
+  /** Omit to show the card without an outbound link. */
+  href?: string;
   domain: string;
   logo: string;
   /** Tailwind background for the logo plate — each mark has its own lockup colour. */
@@ -44,7 +45,7 @@ const SPONSORS: Sponsor[] = [
   {
     name: "AI Catalyst",
     role: "Incubator",
-    href: "https://aicatalyst.au/",
+    // Outbound link paused for now — card stays visible without navigation.
     domain: "aicatalyst.au",
     logo: "/sponsors/ai-catalyst.png",
     logoBg: "bg-[#171717]",
@@ -94,21 +95,15 @@ function SponsorLogo({ sponsor }: { sponsor: Sponsor }) {
   );
 }
 
-function SponsorCard({ sponsor }: { sponsor: Sponsor }) {
-  const [ref, visible] = useReveal<HTMLAnchorElement>();
-
+function SponsorCardBody({
+  sponsor,
+  linked,
+}: {
+  sponsor: Sponsor;
+  linked: boolean;
+}) {
   return (
-    <a
-      ref={ref}
-      href={sponsor.href}
-      target="_blank"
-      rel="noreferrer noopener"
-      className={cn(
-        "group flex gap-[clamp(18px,2.4vw,28px)] border border-ink/12 bg-cream-2/45 p-[clamp(20px,2.6vw,30px)] transition-colors hover:border-ink hover:bg-cream-2 max-[520px]:flex-col",
-        REVEAL,
-        revealState(visible),
-      )}
-    >
+    <>
       <SponsorLogo sponsor={sponsor} />
       <div className="min-w-0">
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1.5">
@@ -122,15 +117,80 @@ function SponsorCard({ sponsor }: { sponsor: Sponsor }) {
         <p className="mt-3.5 text-[15px] leading-[1.6] text-ink/65">
           {sponsor.description}
         </p>
-        <span className="mt-5 inline-flex items-center gap-2 border-b border-ink/25 pb-1 font-space text-[11px] font-bold tracking-[0.14em] uppercase transition-colors group-hover:border-ink">
+        <span
+          className={cn(
+            "mt-5 inline-flex items-center gap-2 border-b border-ink/25 pb-1 font-space text-[11px] font-bold tracking-[0.14em] uppercase",
+            linked && "transition-colors group-hover:border-ink",
+          )}
+        >
           {sponsor.domain}
-          <span aria-hidden="true">↗</span>
+          {linked ? <span aria-hidden="true">↗</span> : null}
         </span>
       </div>
+    </>
+  );
+}
+
+function SponsorCard({ sponsor }: { sponsor: Sponsor }) {
+  const linked = Boolean(sponsor.href);
+  const className = cn(
+    "group flex gap-[clamp(18px,2.4vw,28px)] border border-ink/12 bg-cream-2/45 p-[clamp(20px,2.6vw,30px)] max-[520px]:flex-col",
+    linked && "transition-colors hover:border-ink hover:bg-cream-2",
+    REVEAL,
+  );
+
+  if (sponsor.href) {
+    return (
+      <SponsorLinkCard
+        href={sponsor.href}
+        className={className}
+        sponsor={sponsor}
+      />
+    );
+  }
+
+  return <SponsorStaticCard className={className} sponsor={sponsor} />;
+}
+
+function SponsorLinkCard({
+  href,
+  className,
+  sponsor,
+}: {
+  href: string;
+  className: string;
+  sponsor: Sponsor;
+}) {
+  const [ref, visible] = useReveal<HTMLAnchorElement>();
+
+  return (
+    <a
+      ref={ref}
+      href={href}
+      target="_blank"
+      rel="noreferrer noopener"
+      className={cn(className, revealState(visible))}
+    >
+      <SponsorCardBody sponsor={sponsor} linked />
     </a>
   );
 }
 
+function SponsorStaticCard({
+  className,
+  sponsor,
+}: {
+  className: string;
+  sponsor: Sponsor;
+}) {
+  const [ref, visible] = useReveal<HTMLDivElement>();
+
+  return (
+    <div ref={ref} className={cn(className, revealState(visible))}>
+      <SponsorCardBody sponsor={sponsor} linked={false} />
+    </div>
+  );
+}
 function PartnershipInvite() {
   const [ref, visible] = useReveal<HTMLDivElement>();
 
