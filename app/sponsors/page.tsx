@@ -4,7 +4,8 @@ import { SponsorsPage } from "@/components/site/sponsors/sponsors-page";
 
 export const metadata: Metadata = {
   title: "Currents · Sponsors",
-  description: "Partner with Currents.",
+  description:
+    "The people and companies backing Currents — and how to bring a partnership.",
 };
 
 export default function Page() {
