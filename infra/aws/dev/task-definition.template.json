@@ -29,6 +29,12 @@
         { "name": "SES_FROM_EMAIL", "value": "noreply@currentscommunity.com" },
         { "name": "GOOGLE_CLIENT_ID", "value": "" }
       ],
+      "secrets": [
+        {
+          "name": "DATABASE_URL",
+          "valueFrom": "arn:aws:secretsmanager:ap-southeast-2:765332581489:secret:currents-develop/database-url-eir0B9"
+        }
+      ],
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
@@ -45,7 +51,7 @@
         "interval": 10,
         "timeout": 5,
         "retries": 3,
-        "startPeriod": 20
+        "startPeriod": 45
       }
     }
   ]

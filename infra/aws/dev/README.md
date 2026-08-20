@@ -7,26 +7,27 @@ It is an **ECS + ALB** foundation — **not EC2**. Prefer that path.
 
 ## What already exists
 
-| Resource         | Value                                                                    |
-| ---------------- | ------------------------------------------------------------------------ |
-| VPC              | `vpc-0dc75e7a94f95ff6a` (`ai-catalyst-staging`)                          |
-| ECS cluster      | `currents-develop`                                                       |
-| ECR              | `765332581489.dkr.ecr.ap-southeast-2.amazonaws.com/currents-develop/app` |
-| App SG           | `sg-07f64e645b2c285d5` (`currents-develop-app`)                          |
-| Domain (holding) | `https://develop.currentscommunity.com`                                  |
-| Assets bucket    | `currents-develop-assets-765332581489-ap-southeast-2`                    |
-| **RDS**          | **Not created yet** (by design for now)                                  |
-
-ALB currently returns a fixed holding response for the develop host until an ECS service is attached.
+| Resource        | Value                                                                    |
+| --------------- | ------------------------------------------------------------------------ |
+| VPC             | `vpc-0dc75e7a94f95ff6a` (`ai-catalyst-staging`)                          |
+| ECS cluster     | `currents-develop`                                                       |
+| ECR             | `765332581489.dkr.ecr.ap-southeast-2.amazonaws.com/currents-develop/app` |
+| App SG          | `sg-07f64e645b2c285d5` (`currents-develop-app`)                          |
+| DB SG           | `sg-004c2aab58266867b` (`currents-develop-db`)                           |
+| RDS             | `currents-develop-postgres` (Postgres 17, private, `db.t4g.micro`)       |
+| DB subnet group | `currents-develop-db`                                                    |
+| `DATABASE_URL`  | Secrets Manager `currents-develop/database-url`                          |
+| Domain          | `https://develop.currentscommunity.com`                                  |
+| Assets bucket   | `currents-develop-assets-765332581489-ap-southeast-2`                    |
 
 ## App ↔ DB
 
 - ALB / container liveness: **`GET /api/live`** (no database required)
 - DB readiness: **`GET /api/health`** (needs `DATABASE_URL` / RDS)
+- Join location picker: **`GET /api/geo/states`** (needs `GEONAMES_USERNAME`)
 
-Until RDS exists, deploy the web service **without** `DATABASE_URL`. Marketing pages work; `/api/health` will be 503.
-
-When RDS is ready, set `DATABASE_URL` on the task definition (Secrets Manager preferred) and run `pnpm db:migrate` from a one-off task or bastion.
+`DATABASE_URL` is injected from Secrets Manager. The container runs migrations
+at boot (`db/ecs-entrypoint.mjs`) before serving traffic.
 
 ## GitHub Actions deploy
 
@@ -35,44 +36,52 @@ Workflow: [`.github/workflows/deploy-develop.yml`](../../.github/workflows/deplo
 - Triggers once **CI succeeds on a push to `develop`**, or via **manual `workflow_dispatch`**
 - Uses the GitHub `develop` environment so the workflow-run OIDC identity matches the IAM role trust policy
 - Assumes IAM role `arn:aws:iam::765332581489:role/currents-github-actions-deploy` (OIDC)
-- Builds/pushes `currents-develop/app:<git-sha>`, registers task definition, updates ECS service, smokes `/api/live`
+- Builds/pushes `currents-develop/app:<git-sha>`, registers task definition, runs migrations, updates ECS service
+- Smokes `/api/live`, `/`, `/api/luma/events`, `/api/health`, `/api/geo/states?country=AU`
+
+Required GitHub **develop** environment secrets:
+
+- `BETTER_AUTH_SECRET`
+- `MEMBER_APPLICATION_CLAIM_SECRET`
+- `GEONAMES_USERNAME`
+
+Required repository secret:
+
+- `LUMA_API_KEY`
+
+Optional (features stay off until set):
+
+- `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` — Google sign-in (not part of V1 Join)
+- `LUMA_WEBHOOK_SECRET` — `POST /api/luma/webhooks` guest mirror
 
 Trust / policy JSON used to provision the role:
 
 - [`github-actions-trust.json`](./github-actions-trust.json)
 - [`github-actions-policy.json`](./github-actions-policy.json)
+- [`ecs-execution-database-url-policy.json`](./ecs-execution-database-url-policy.json)
 
-## Deploy (web, no RDS) — manual from a laptop
+## Public subnets (ECS tasks)
 
-```bash
-# 1) Build & push (linux/amd64)
-aws ecr get-login-password --region ap-southeast-2 \
-  | docker login --username AWS --password-stdin 765332581489.dkr.ecr.ap-southeast-2.amazonaws.com
-
-TAG=dev-$(git rev-parse --short HEAD)
-docker build --platform linux/amd64 -t currents-develop/app:$TAG .
-docker tag currents-develop/app:$TAG \
-  765332581489.dkr.ecr.ap-southeast-2.amazonaws.com/currents-develop/app:$TAG
-docker push 765332581489.dkr.ecr.ap-southeast-2.amazonaws.com/currents-develop/app:$TAG
-
-# 2) Register task def / create service — see task-definition.template.json
-# 3) Point ALB HTTPS rule for develop.currentscommunity.com at the target group
-```
-
-Public subnets (same pattern as AI Catalyst staging Fargate):
+Same pattern as AI Catalyst staging Fargate:
 
 - `subnet-0463eda6ac077e977` (public-0)
 - `subnet-07b302fc84ea32325` (public-1)
 
-## Later: add Dev RDS
+Private subnets (RDS):
 
-1. Create Postgres 17 in this VPC (private subnets preferred).
-2. SG: allow **5432** from `sg-07f64e645b2c285d5` only.
-3. Put URL in task env/secret as `DATABASE_URL`.
-4. Run migrations; confirm `/api/health` → `{"status":"ok"}`.
+- `subnet-0b8f50ef1ca733ae6` (private-0)
+- `subnet-02d76fd7f04d9b8c2` (private-1)
+
+## Luma webhook
+
+Create a calendar webhook in Luma pointing at:
+
+`https://develop.currentscommunity.com/api/luma/webhooks`
+
+Store the `whsec_...` value as the `LUMA_WEBHOOK_SECRET` GitHub environment
+secret, then re-run **Deploy develop**.
 
 ## Out of scope
 
-- Creating RDS now
 - Production
 - Standalone EC2 (would duplicate the existing ECS/ALB/DNS setup)

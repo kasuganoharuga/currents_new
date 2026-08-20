@@ -30,11 +30,15 @@ ENV HOSTNAME=0.0.0.0
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/db/migrate.ts ./db/migrate.ts
+COPY --from=builder /app/db/ecs-entrypoint.mjs ./db/ecs-entrypoint.mjs
+COPY --from=builder /app/infra/database/migrations ./infra/database/migrations
 
 EXPOSE 3000
 
-# Use /api/live (no DB) so containers can start before RDS exists.
-HEALTHCHECK --interval=10s --timeout=3s --start-period=15s --retries=5 \
+# /api/live still does not require the database; migrations run at boot so
+# Join/auth tables exist before the process accepts traffic.
+HEALTHCHECK --interval=10s --timeout=3s --start-period=45s --retries=5 \
   CMD ["node", "-e", "fetch('http://127.0.0.1:3000/api/live').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
 
-CMD ["node", "server.js"]
+CMD ["node", "db/ecs-entrypoint.mjs"]

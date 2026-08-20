@@ -82,6 +82,7 @@ jobs:
         shell: bash
         env:
           LUMA_API_KEY: ${{ secrets.LUMA_API_KEY }}
+          LUMA_WEBHOOK_SECRET: ${{ secrets.LUMA_WEBHOOK_SECRET }}
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
@@ -94,11 +95,17 @@ jobs:
             exit 1
           fi
 
-          # Auth secrets are optional until configured — deploy still ships the
-          # marketing site; join/OTP/Google stay inactive without them.
-          for name in BETTER_AUTH_SECRET GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET MEMBER_APPLICATION_CLAIM_SECRET GEONAMES_USERNAME; do
+          for name in BETTER_AUTH_SECRET MEMBER_APPLICATION_CLAIM_SECRET GEONAMES_USERNAME; do
             if [ -z "${!name}" ]; then
-              echo "warning: ${name} not set; auth env will not be injected" >&2
+              echo "${name} is required for Join on develop" >&2
+              exit 1
+            fi
+          done
+
+          # Google OAuth is optional — V1 Join is the questionnaire only.
+          for name in GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET LUMA_WEBHOOK_SECRET; do
+            if [ -z "${!name}" ]; then
+              echo "warning: ${name} not set; that feature will stay inactive" >&2
             fi
           done
 
@@ -112,36 +119,39 @@ jobs:
           jq \
             --arg image "${IMAGE_URI}" \
             --arg luma_api_key "${LUMA_API_KEY}" \
+            --arg luma_webhook_secret "${LUMA_WEBHOOK_SECRET}" \
             --arg better_auth_secret "${BETTER_AUTH_SECRET}" \
             --arg google_client_id "${GOOGLE_CLIENT_ID}" \
             --arg google_client_secret "${GOOGLE_CLIENT_SECRET}" \
             --arg member_application_claim_secret "${MEMBER_APPLICATION_CLAIM_SECRET}" \
             --arg geonames_username "${GEONAMES_USERNAME}" \
-            '
-              def put($n; $v):
-                if ($v | length) == 0 then . else . + [{"name": $n, "value": $v}] end;
-              .containerDefinitions |= map(
-                if .name == "app" then
-                  .image = $image |
-                  .environment = (
-                    ((.environment // []) | map(select(
-                      .name != "LUMA_API_KEY" and
-                      .name != "BETTER_AUTH_SECRET" and
-                      .name != "GOOGLE_CLIENT_ID" and
-                      .name != "GOOGLE_CLIENT_SECRET" and
-                      .name != "MEMBER_APPLICATION_CLAIM_SECRET" and
-                      .name != "GEONAMES_USERNAME"
-                    )))
-                    | put("LUMA_API_KEY"; $luma_api_key)
-                    | put("BETTER_AUTH_SECRET"; $better_auth_secret)
-                    | put("GOOGLE_CLIENT_ID"; $google_client_id)
-                    | put("GOOGLE_CLIENT_SECRET"; $google_client_secret)
-                    | put("MEMBER_APPLICATION_CLAIM_SECRET"; $member_application_claim_secret)
-                    | put("GEONAMES_USERNAME"; $geonames_username)
-                  )
-                else . end
-              )
-            ' \
+          '
+            def put($n; $v):
+              if ($v | length) == 0 then . else . + [{"name": $n, "value": $v}] end;
+            .containerDefinitions |= map(
+              if .name == "app" then
+                .image = $image |
+                .environment = (
+                  ((.environment // []) | map(select(
+                    .name != "LUMA_API_KEY" and
+                    .name != "LUMA_WEBHOOK_SECRET" and
+                    .name != "BETTER_AUTH_SECRET" and
+                    .name != "GOOGLE_CLIENT_ID" and
+                    .name != "GOOGLE_CLIENT_SECRET" and
+                    .name != "MEMBER_APPLICATION_CLAIM_SECRET" and
+                    .name != "GEONAMES_USERNAME"
+                  )))
+                  | put("LUMA_API_KEY"; $luma_api_key)
+                  | put("LUMA_WEBHOOK_SECRET"; $luma_webhook_secret)
+                  | put("BETTER_AUTH_SECRET"; $better_auth_secret)
+                  | put("GOOGLE_CLIENT_ID"; $google_client_id)
+                  | put("GOOGLE_CLIENT_SECRET"; $google_client_secret)
+                  | put("MEMBER_APPLICATION_CLAIM_SECRET"; $member_application_claim_secret)
+                  | put("GEONAMES_USERNAME"; $geonames_username)
+                )
+              else . end
+            )
+          ' \
             "${TASK_JSON}" > "${TASK_JSON}.next"
           mv "${TASK_JSON}.next" "${TASK_JSON}"
 
@@ -150,6 +160,34 @@ jobs:
             --query 'taskDefinition.taskDefinitionArn' \
             --output text)"
           echo "Registered ${TASK_ARN}"
+
+          echo "Running database migrations..."
+          MIGRATE_ARN="$(aws ecs run-task \
+            --cluster "${CLUSTER}" \
+            --task-definition "${TASK_ARN}" \
+            --launch-type FARGATE \
+            --network-configuration "awsvpcConfiguration={subnets=[subnet-0463eda6ac077e977,subnet-07b302fc84ea32325],securityGroups=[sg-07f64e645b2c285d5],assignPublicIp=ENABLED}" \
+            --overrides '{"containerOverrides":[{"name":"app","command":["node","--experimental-strip-types","db/migrate.ts"]}]}' \
+            --query 'tasks[0].taskArn' \
+            --output text)"
+          if [ -z "${MIGRATE_ARN}" ] || [ "${MIGRATE_ARN}" = "None" ]; then
+            echo "Failed to start migrate task" >&2
+            exit 1
+          fi
+          echo "Migrate task ${MIGRATE_ARN}"
+          aws ecs wait tasks-stopped \
+            --cluster "${CLUSTER}" \
+            --tasks "${MIGRATE_ARN}"
+          MIGRATE_EXIT="$(aws ecs describe-tasks \
+            --cluster "${CLUSTER}" \
+            --tasks "${MIGRATE_ARN}" \
+            --query 'tasks[0].containers[0].exitCode' \
+            --output text)"
+          echo "Migrate exit code: ${MIGRATE_EXIT}"
+          if [ "${MIGRATE_EXIT}" != "0" ]; then
+            echo "Database migrations failed" >&2
+            exit 1
+          fi
 
           aws ecs update-service \
             --cluster "${CLUSTER}" \
@@ -189,3 +227,17 @@ jobs:
           }
           event_count="$(echo "${events}" | jq '.events | length')"
           echo "GET /api/luma/events -> ok (${event_count} events)"
+
+          health="$(curl -fsS "${DEVELOP_URL}/api/health")"
+          echo "${health}"
+          echo "${health}" | grep -q '"status":"ok"' || {
+            echo "Expected /api/health to report ok" >&2
+            exit 1
+          }
+
+          states="$(curl -fsS "${DEVELOP_URL}/api/geo/states?country=AU")"
+          echo "${states}" | jq -e '.states | type == "array" and length > 0' >/dev/null || {
+            echo "Expected /api/geo/states to return AU states" >&2
+            exit 1
+          }
+          echo "GET /api/geo/states?country=AU -> ok"

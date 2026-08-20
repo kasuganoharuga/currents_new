@@ -1,5 +1,3 @@
-import "dotenv/config";
-
 import { createHash } from "node:crypto";
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
@@ -102,7 +100,21 @@ async function applyMigration(
   }
 }
 
+async function loadLocalEnv(): Promise<void> {
+  if (process.env.DATABASE_URL) {
+    return;
+  }
+
+  try {
+    await import("dotenv/config");
+  } catch {
+    // ECS injects DATABASE_URL; local `pnpm db:migrate` loads dotenv.
+  }
+}
+
 async function run(): Promise<void> {
+  await loadLocalEnv();
+
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) {
     throw new Error("DATABASE_URL is required");

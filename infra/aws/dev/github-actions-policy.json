@@ -56,6 +56,27 @@
           "iam:PassedToService": "ecs-tasks.amazonaws.com"
         }
       }
+    },
+    {
+      "Sid": "RunMigrateTasks",
+      "Effect": "Allow",
+      "Action": ["ecs:RunTask"],
+      "Resource": [
+        "arn:aws:ecs:ap-southeast-2:765332581489:task-definition/currents-develop-app:*"
+      ],
+      "Condition": {
+        "ArnEquals": {
+          "ecs:cluster": "arn:aws:ecs:ap-southeast-2:765332581489:cluster/currents-develop"
+        }
+      }
+    },
+    {
+      "Sid": "WatchMigrateTasks",
+      "Effect": "Allow",
+      "Action": ["ecs:DescribeTasks", "ecs:StopTask"],
+      "Resource": [
+        "arn:aws:ecs:ap-southeast-2:765332581489:task/currents-develop/*"
+      ]
     }
   ]
 }
