@@ -17,6 +17,10 @@ COPY . .
 ARG DATABASE_URL=postgresql://currents:currents@db:5432/currents
 ENV DATABASE_URL=${DATABASE_URL}
 
+# Inlined into the client bundle at build time. Pass the public origin.
+ARG NEXT_PUBLIC_BETTER_AUTH_URL=
+ENV NEXT_PUBLIC_BETTER_AUTH_URL=${NEXT_PUBLIC_BETTER_AUTH_URL}
+
 RUN pnpm build
 
 FROM node:22-slim AS runner

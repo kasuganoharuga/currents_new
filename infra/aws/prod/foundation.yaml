@@ -1,0 +1,843 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  Currents production foundation - ECS/ECR/IAM, ALB target routing, RDS
+  Postgres, CloudWatch logs and alarms. Application image and ECS service are
+  registered by GitHub Actions after the first image is pushed.
+
+Parameters:
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+  PublicSubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+  PrivateSubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+  AlbSecurityGroupId:
+    Type: AWS::EC2::SecurityGroup::Id
+  HttpsListenerArn:
+    Type: String
+  CertificateArn:
+    Type: String
+    Description: ACM certificate covering currentscommunity.com and www.
+  AlarmTopicArn:
+    Type: String
+  ProductionDomainName:
+    Type: String
+    Default: currentscommunity.com
+  WwwDomainName:
+    Type: String
+    Default: www.currentscommunity.com
+
+Conditions:
+  HasCertificate: !Not [!Equals [!Ref CertificateArn, ""]]
+
+Resources:
+  AssetsBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !Sub currents-production-assets-${AWS::AccountId}-${AWS::Region}
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      LifecycleConfiguration:
+        Rules:
+          - Id: AbortIncompleteMultipartUploads
+            Status: Enabled
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 7
+          - Id: ExpireOldNoncurrentVersions
+            Status: Enabled
+            NoncurrentVersionExpiration:
+              NoncurrentDays: 90
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      VersioningConfiguration:
+        Status: Enabled
+      Tags:
+        - Key: Project
+          Value: currents
+        - Key: Environment
+          Value: production
+        - Key: ManagedBy
+          Value: cloudformation
+
+  AssetsBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref AssetsBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: DenyInsecureTransport
+            Effect: Deny
+            Principal: "*"
+            Action: s3:*
+            Resource:
+              - !GetAtt AssetsBucket.Arn
+              - !Sub ${AssetsBucket.Arn}/*
+            Condition:
+              Bool:
+                aws:SecureTransport: "false"
+
+  AppRepository:
+    Type: AWS::ECR::Repository
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      RepositoryName: currents-production/app
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      ImageTagMutability: IMMUTABLE
+      EncryptionConfiguration:
+        EncryptionType: AES256
+      LifecyclePolicy:
+        LifecyclePolicyText: |-
+          {
+            "rules": [
+              {
+                "rulePriority": 1,
+                "description": "Remove untagged images after seven days",
+                "selection": {
+                  "tagStatus": "untagged",
+                  "countType": "sinceImagePushed",
+                  "countUnit": "days",
+                  "countNumber": 7
+                },
+                "action": { "type": "expire" }
+              },
+              {
+                "rulePriority": 2,
+                "description": "Retain the newest forty tagged images",
+                "selection": {
+                  "tagStatus": "any",
+                  "countType": "imageCountMoreThan",
+                  "countNumber": 40
+                },
+                "action": { "type": "expire" }
+              }
+            ]
+          }
+      Tags:
+        - Key: Project
+          Value: currents
+        - Key: Environment
+          Value: production
+        - Key: ManagedBy
+          Value: cloudformation
+
+  Cluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: currents-production
+      CapacityProviders:
+        - FARGATE
+        - FARGATE_SPOT
+      DefaultCapacityProviderStrategy:
+        - CapacityProvider: FARGATE
+          Base: 1
+          Weight: 1
+      ClusterSettings:
+        - Name: containerInsights
+          Value: enabled
+      Configuration:
+        ExecuteCommandConfiguration:
+          Logging: DEFAULT
+      Tags:
+        - Key: Project
+          Value: currents
+        - Key: Environment
+          Value: production
+        - Key: ManagedBy
+          Value: cloudformation
+
+  AppLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      LogGroupName: /ecs/currents-production-app
+      RetentionInDays: 30
+      Tags:
+        - Key: Project
+          Value: currents
+        - Key: Environment
+          Value: production
+        - Key: ManagedBy
+          Value: cloudformation
+
+  RdsLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      LogGroupName: /aws/rds/instance/currents-production-postgres/postgresql
+      RetentionInDays: 30
+      Tags:
+        - Key: Project
+          Value: currents
+        - Key: Environment
+          Value: production
+        - Key: ManagedBy
+          Value: cloudformation
+
+  AppErrorFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref AppLogGroup
+      FilterName: currents-production-app-error
+      FilterPattern: '?ERROR ?Error "status\":500"'
+      MetricTransformations:
+        - MetricNamespace: Currents/Production
+          MetricName: AppErrorLogCount
+          MetricValue: "1"
+          DefaultValue: 0
+
+  AppSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: currents-production-app
+      GroupDescription: Currents production ECS tasks
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3000
+          ToPort: 3000
+          SourceSecurityGroupId: !Ref AlbSecurityGroupId
+          Description: ALB to Currents production app
+      SecurityGroupEgress:
+        - IpProtocol: "-1"
+          CidrIp: 0.0.0.0/0
+          Description: Application egress
+      Tags:
+        - Key: Name
+          Value: currents-production-app
+        - Key: Project
+          Value: currents
+        - Key: Environment
+          Value: production
+        - Key: ManagedBy
+          Value: cloudformation
+
+  DbSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: currents-production-db
+      GroupDescription: Currents production Postgres; 5432 from app tasks only
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          SourceSecurityGroupId: !Ref AppSecurityGroup
+          Description: ECS tasks to Postgres
+      SecurityGroupEgress:
+        - IpProtocol: "-1"
+          CidrIp: 0.0.0.0/0
+          Description: Database egress
+      Tags:
+        - Key: Name
+          Value: currents-production-db
+        - Key: Project
+          Value: currents
+        - Key: Environment
+          Value: production
+        - Key: ManagedBy
+          Value: cloudformation
+
+  DbSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupName: currents-production-db
+      DBSubnetGroupDescription: Currents production private DB subnets
+      SubnetIds: !Ref PrivateSubnetIds
+      Tags:
+        - Key: Project
+          Value: currents
+        - Key: Environment
+          Value: production
+        - Key: ManagedBy
+          Value: cloudformation
+
+  DatabaseMasterSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: currents-production/rds-master
+      Description: Currents production RDS master username/password
+      GenerateSecretString:
+        SecretStringTemplate: '{"username":"currents_app"}'
+        GenerateStringKey: password
+        PasswordLength: 32
+        ExcludePunctuation: true
+      Tags:
+        - Key: Project
+          Value: currents
+        - Key: Environment
+          Value: production
+        - Key: ManagedBy
+          Value: cloudformation
+
+  Database:
+    Type: AWS::RDS::DBInstance
+    DependsOn: RdsLogGroup
+    DeletionPolicy: Snapshot
+    UpdateReplacePolicy: Snapshot
+    Properties:
+      DBInstanceIdentifier: currents-production-postgres
+      DBName: currents
+      Engine: postgres
+      EngineVersion: "17.10"
+      DBInstanceClass: db.t4g.small
+      AllocatedStorage: 50
+      MaxAllocatedStorage: 100
+      StorageType: gp3
+      StorageEncrypted: true
+      MasterUsername: currents_app
+      MasterUserPassword: !Sub "{{resolve:secretsmanager:${DatabaseMasterSecret}:SecretString:password}}"
+      DBSubnetGroupName: !Ref DbSubnetGroup
+      VPCSecurityGroups:
+        - !Ref DbSecurityGroup
+      PubliclyAccessible: false
+      MultiAZ: false
+      BackupRetentionPeriod: 7
+      PreferredBackupWindow: "14:00-15:00"
+      PreferredMaintenanceWindow: "sun:15:00-sun:16:00"
+      CopyTagsToSnapshot: true
+      DeletionProtection: true
+      EnableCloudwatchLogsExports:
+        - postgresql
+      AutoMinorVersionUpgrade: true
+      Tags:
+        - Key: Project
+          Value: currents
+        - Key: Environment
+          Value: production
+        - Key: ManagedBy
+          Value: cloudformation
+
+  DatabaseUrlSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: currents-production/database-url
+      Description: Currents production DATABASE_URL
+      SecretString: !Sub
+        - "postgresql://currents_app:${Password}@${Host}:5432/currents?sslmode=require&uselibpqcompat=true"
+        - Password: !Sub "{{resolve:secretsmanager:${DatabaseMasterSecret}:SecretString:password}}"
+          Host: !GetAtt Database.Endpoint.Address
+      Tags:
+        - Key: Project
+          Value: currents
+        - Key: Environment
+          Value: production
+        - Key: ManagedBy
+          Value: cloudformation
+
+  TaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: currents-production-ecs-execution
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - !Sub arn:${AWS::Partition}:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+      Policies:
+        - PolicyName: currents-production-database-url
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: ReadDatabaseUrlSecret
+                Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: !Sub arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:currents-production/database-url*
+      Tags:
+        - Key: Project
+          Value: currents
+        - Key: Environment
+          Value: production
+        - Key: ManagedBy
+          Value: cloudformation
+
+  AppTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: currents-production-app-task
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: currents-production-assets
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: ListAssetsBucket
+                Effect: Allow
+                Action:
+                  - s3:ListBucket
+                  - s3:GetBucketLocation
+                Resource: !GetAtt AssetsBucket.Arn
+              - Sid: ReadWriteAssets
+                Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:DeleteObject
+                  - s3:AbortMultipartUpload
+                  - s3:ListMultipartUploadParts
+                Resource: !Sub ${AssetsBucket.Arn}/*
+              - Sid: SendOtpEmail
+                Effect: Allow
+                Action:
+                  - ses:SendEmail
+                  - ses:SendRawEmail
+                Resource: "*"
+                Condition:
+                  StringEquals:
+                    ses:FromAddress: noreply@currentscommunity.com
+      Tags:
+        - Key: Project
+          Value: currents
+        - Key: Environment
+          Value: production
+        - Key: ManagedBy
+          Value: cloudformation
+
+  GithubActionsDeployRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: currents-github-actions-deploy-production
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:oidc-provider/token.actions.githubusercontent.com
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+              StringLike:
+                token.actions.githubusercontent.com:sub:
+                  - repo:Torus-Group/currents_new:ref:refs/heads/main
+                  - repo:Torus-Group/currents_new:environment:production
+                  - repo:Torus-Group@296493582/currents_new@1332590298:ref:refs/heads/main
+                  - repo:Torus-Group@296493582/currents_new@1332590298:environment:production
+      Policies:
+        - PolicyName: currents-github-actions-deploy-production
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: EcrAuth
+                Effect: Allow
+                Action:
+                  - ecr:GetAuthorizationToken
+                Resource: "*"
+              - Sid: PushImages
+                Effect: Allow
+                Action:
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:InitiateLayerUpload
+                  - ecr:UploadLayerPart
+                  - ecr:CompleteLayerUpload
+                  - ecr:PutImage
+                  - ecr:BatchGetImage
+                  - ecr:DescribeImages
+                  - ecr:DescribeRepositories
+                Resource: !GetAtt AppRepository.Arn
+              - Sid: DeployEcsService
+                Effect: Allow
+                Action:
+                  - ecs:DescribeClusters
+                  - ecs:DescribeServices
+                  - ecs:UpdateService
+                  - ecs:CreateService
+                Resource:
+                  - !GetAtt Cluster.Arn
+                  - !Sub arn:${AWS::Partition}:ecs:${AWS::Region}:${AWS::AccountId}:service/currents-production/currents-production-app
+              - Sid: TaskDefinitionLifecycle
+                Effect: Allow
+                Action:
+                  - ecs:DescribeTaskDefinition
+                  - ecs:RegisterTaskDefinition
+                Resource: "*"
+              - Sid: PassEcsRoles
+                Effect: Allow
+                Action:
+                  - iam:PassRole
+                Resource:
+                  - !GetAtt TaskExecutionRole.Arn
+                  - !GetAtt AppTaskRole.Arn
+                Condition:
+                  StringEquals:
+                    iam:PassedToService: ecs-tasks.amazonaws.com
+              - Sid: RunMigrateTasks
+                Effect: Allow
+                Action:
+                  - ecs:RunTask
+                Resource: !Sub arn:${AWS::Partition}:ecs:${AWS::Region}:${AWS::AccountId}:task-definition/currents-production-app:*
+                Condition:
+                  ArnEquals:
+                    ecs:cluster: !GetAtt Cluster.Arn
+              - Sid: WatchMigrateTasks
+                Effect: Allow
+                Action:
+                  - ecs:DescribeTasks
+                  - ecs:StopTask
+                Resource: !Sub arn:${AWS::Partition}:ecs:${AWS::Region}:${AWS::AccountId}:task/currents-production/*
+              - Sid: ReadFoundationOutputs
+                Effect: Allow
+                Action:
+                  - cloudformation:DescribeStacks
+                Resource: !Sub arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/currents-production-foundation/*
+              - Sid: ReadTargetHealth
+                Effect: Allow
+                Action:
+                  - elasticloadbalancing:DescribeTargetHealth
+                  - elasticloadbalancing:DescribeTargetGroups
+                Resource: "*"
+      Tags:
+        - Key: Project
+          Value: currents
+        - Key: Environment
+          Value: production
+        - Key: ManagedBy
+          Value: cloudformation
+
+  AppTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: currents-production-app
+      VpcId: !Ref VpcId
+      Protocol: HTTP
+      Port: 3000
+      TargetType: ip
+      HealthCheckEnabled: true
+      HealthCheckPath: /api/live
+      HealthCheckProtocol: HTTP
+      HealthCheckIntervalSeconds: 15
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 3
+      Matcher:
+        HttpCode: "200"
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: "30"
+      Tags:
+        - Key: Project
+          Value: currents
+        - Key: Environment
+          Value: production
+        - Key: ManagedBy
+          Value: cloudformation
+
+  HttpsHostRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      ListenerArn: !Ref HttpsListenerArn
+      Priority: 5
+      Conditions:
+        - Field: host-header
+          HostHeaderConfig:
+            Values:
+              - !Ref ProductionDomainName
+              - !Ref WwwDomainName
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref AppTargetGroup
+
+  ListenerCertificate:
+    Type: AWS::ElasticLoadBalancingV2::ListenerCertificate
+    Condition: HasCertificate
+    Properties:
+      ListenerArn: !Ref HttpsListenerArn
+      Certificates:
+        - CertificateArn: !Ref CertificateArn
+
+  AlarmUnhealthyHosts:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: currents-production-unhealthy-hosts
+      AlarmDescription: Currents production target group has unhealthy hosts
+      Namespace: AWS/ApplicationELB
+      MetricName: UnHealthyHostCount
+      Dimensions:
+        - Name: TargetGroup
+          Value: !GetAtt AppTargetGroup.TargetGroupFullName
+        - Name: LoadBalancer
+          Value: ai-catalyst-production/8257a41fff930739
+      Statistic: Maximum
+      Period: 60
+      EvaluationPeriods: 3
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlarmTopicArn
+      OKActions:
+        - !Ref AlarmTopicArn
+
+  AlarmTarget5xx:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: currents-production-target-5xx
+      AlarmDescription: Currents production ALB target 5xx
+      Namespace: AWS/ApplicationELB
+      MetricName: HTTPCode_Target_5XX_Count
+      Dimensions:
+        - Name: TargetGroup
+          Value: !GetAtt AppTargetGroup.TargetGroupFullName
+        - Name: LoadBalancer
+          Value: ai-catalyst-production/8257a41fff930739
+      Statistic: Sum
+      Period: 60
+      EvaluationPeriods: 5
+      Threshold: 5
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlarmTopicArn
+
+  AlarmAppErrorLogs:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: currents-production-app-error-logs
+      AlarmDescription: Error lines in Currents production app logs
+      Namespace: Currents/Production
+      MetricName: AppErrorLogCount
+      Statistic: Sum
+      Period: 60
+      EvaluationPeriods: 5
+      Threshold: 10
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlarmTopicArn
+
+  AlarmRdsCpu:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: currents-production-rds-cpu-high
+      AlarmDescription: Currents production RDS CPU high
+      Namespace: AWS/RDS
+      MetricName: CPUUtilization
+      Dimensions:
+        - Name: DBInstanceIdentifier
+          Value: currents-production-postgres
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 3
+      Threshold: 80
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlarmTopicArn
+
+  AlarmRdsStorage:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: currents-production-rds-storage-low
+      AlarmDescription: Currents production RDS free storage below 2 GiB
+      Namespace: AWS/RDS
+      MetricName: FreeStorageSpace
+      Dimensions:
+        - Name: DBInstanceIdentifier
+          Value: currents-production-postgres
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 2147483648
+      ComparisonOperator: LessThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlarmTopicArn
+
+  AlarmEcsCpu:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: currents-production-ecs-cpu-high
+      AlarmDescription: Currents production ECS CPU high
+      Namespace: AWS/ECS
+      MetricName: CPUUtilization
+      Dimensions:
+        - Name: ClusterName
+          Value: currents-production
+        - Name: ServiceName
+          Value: currents-production-app
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 3
+      Threshold: 80
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlarmTopicArn
+
+  AlarmEcsMemory:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: currents-production-ecs-memory-high
+      AlarmDescription: Currents production ECS memory high
+      Namespace: AWS/ECS
+      MetricName: MemoryUtilization
+      Dimensions:
+        - Name: ClusterName
+          Value: currents-production
+        - Name: ServiceName
+          Value: currents-production-app
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 3
+      Threshold: 80
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlarmTopicArn
+
+  AlarmRdsConnections:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: currents-production-rds-connections-high
+      AlarmDescription: Currents production RDS connection count high
+      Namespace: AWS/RDS
+      MetricName: DatabaseConnections
+      Dimensions:
+        - Name: DBInstanceIdentifier
+          Value: currents-production-postgres
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 3
+      Threshold: 80
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlarmTopicArn
+
+  Dashboard:
+    Type: AWS::CloudWatch::Dashboard
+    Properties:
+      DashboardName: currents-production
+      DashboardBody: !Sub
+        - |
+          {
+            "widgets": [
+              {
+                "type": "metric",
+                "x": 0, "y": 0, "width": 12, "height": 6,
+                "properties": {
+                  "title": "ALB target 5xx / unhealthy hosts",
+                  "region": "${AWS::Region}",
+                  "metrics": [
+                    ["AWS/ApplicationELB", "HTTPCode_Target_5XX_Count", "TargetGroup", "${TgFull}", "LoadBalancer", "${LbFull}", {"stat": "Sum"}],
+                    [".", "UnHealthyHostCount", ".", ".", ".", ".", {"stat": "Maximum", "yAxis": "right"}]
+                  ],
+                  "period": 60,
+                  "view": "timeSeries"
+                }
+              },
+              {
+                "type": "metric",
+                "x": 12, "y": 0, "width": 12, "height": 6,
+                "properties": {
+                  "title": "ALB target response time",
+                  "region": "${AWS::Region}",
+                  "metrics": [
+                    ["AWS/ApplicationELB", "TargetResponseTime", "TargetGroup", "${TgFull}", "LoadBalancer", "${LbFull}", {"stat": "p95"}]
+                  ],
+                  "period": 60,
+                  "view": "timeSeries"
+                }
+              },
+              {
+                "type": "metric",
+                "x": 0, "y": 6, "width": 12, "height": 6,
+                "properties": {
+                  "title": "ECS CPU / memory",
+                  "region": "${AWS::Region}",
+                  "metrics": [
+                    ["AWS/ECS", "CPUUtilization", "ClusterName", "currents-production", "ServiceName", "currents-production-app"],
+                    [".", "MemoryUtilization", ".", ".", ".", "."]
+                  ],
+                  "period": 60,
+                  "view": "timeSeries"
+                }
+              },
+              {
+                "type": "metric",
+                "x": 12, "y": 6, "width": 12, "height": 6,
+                "properties": {
+                  "title": "RDS CPU / connections / free storage",
+                  "region": "${AWS::Region}",
+                  "metrics": [
+                    ["AWS/RDS", "CPUUtilization", "DBInstanceIdentifier", "currents-production-postgres"],
+                    [".", "DatabaseConnections", ".", ".", {"yAxis": "right"}],
+                    [".", "FreeStorageSpace", ".", ".", {"yAxis": "right"}]
+                  ],
+                  "period": 60,
+                  "view": "timeSeries"
+                }
+              },
+              {
+                "type": "log",
+                "x": 0, "y": 12, "width": 24, "height": 6,
+                "properties": {
+                  "title": "App errors (last 3 hours)",
+                  "region": "${AWS::Region}",
+                  "query": "SOURCE '/ecs/currents-production-app' | fields @timestamp, @message | filter @message like /(?i)error/ | sort @timestamp desc | limit 50",
+                  "view": "table"
+                }
+              }
+            ]
+          }
+        - TgFull: !GetAtt AppTargetGroup.TargetGroupFullName
+          LbFull: ai-catalyst-production/8257a41fff930739
+
+Outputs:
+  AssetsBucketName:
+    Value: !Ref AssetsBucket
+  AppRepositoryUri:
+    Value: !GetAtt AppRepository.RepositoryUri
+  ClusterName:
+    Value: !Ref Cluster
+  ClusterArn:
+    Value: !GetAtt Cluster.Arn
+  AppLogGroupName:
+    Value: !Ref AppLogGroup
+  RdsLogGroupName:
+    Value: !Ref RdsLogGroup
+  AppSecurityGroupId:
+    Value: !GetAtt AppSecurityGroup.GroupId
+  DbSecurityGroupId:
+    Value: !GetAtt DbSecurityGroup.GroupId
+  DatabaseEndpoint:
+    Value: !GetAtt Database.Endpoint.Address
+  DatabaseUrlSecretArn:
+    Value: !Ref DatabaseUrlSecret
+  TaskExecutionRoleArn:
+    Value: !GetAtt TaskExecutionRole.Arn
+  AppTaskRoleArn:
+    Value: !GetAtt AppTaskRole.Arn
+  GithubActionsRoleArn:
+    Value: !GetAtt GithubActionsDeployRole.Arn
+  TargetGroupArn:
+    Value: !Ref AppTargetGroup
+  DashboardName:
+    Value: !Ref Dashboard
+  ProductionEndpoint:
+    Value: !Sub https://${ProductionDomainName}

@@ -1,7 +1,8 @@
-name: Deploy develop
+name: Deploy production
 
-# Deploys Currents develop ECS after CI succeeds on a develop push, or via
-# manual workflow_dispatch.
+# Deploys Currents production ECS after CI succeeds on a main push, or via
+# manual workflow_dispatch. The workflow file must live on the default branch
+# because workflow_run always uses that copy.
 
 on:
   workflow_run:
@@ -14,37 +15,39 @@ permissions:
   id-token: write
 
 concurrency:
-  group: deploy-develop
-  cancel-in-progress: true
+  group: deploy-production
+  cancel-in-progress: false
 
 jobs:
   deploy:
-    name: Deploy develop ECS
+    name: Deploy production ECS
     runs-on: ubuntu-latest
-    environment: develop
+    environment: production
     if: >
       github.event_name == 'workflow_dispatch' ||
       (
         github.event_name == 'workflow_run' &&
         github.event.workflow_run.conclusion == 'success' &&
         github.event.workflow_run.event == 'push' &&
-        github.event.workflow_run.head_branch == 'develop'
+        github.event.workflow_run.head_branch == 'main'
       )
 
     env:
       AWS_ACCOUNT_ID: "765332581489"
       AWS_REGION: ap-southeast-2
-      AWS_ROLE_ARN: arn:aws:iam::765332581489:role/currents-github-actions-deploy
-      CLUSTER: currents-develop
-      SERVICE: currents-develop-app
-      ECR_REPOSITORY: currents-develop/app
-      DEVELOP_URL: https://develop.currentscommunity.com
+      AWS_ROLE_ARN: arn:aws:iam::765332581489:role/currents-github-actions-deploy-production
+      CLUSTER: currents-production
+      SERVICE: currents-production-app
+      ECR_REPOSITORY: currents-production/app
+      FOUNDATION_STACK: currents-production-foundation
+      PRODUCTION_URL: https://currentscommunity.com
+      APP_SUBNETS: subnet-01ca3c9f04123576a,subnet-0c2fa11cecac91c62
 
     steps:
       - name: Checkout
         uses: actions/checkout@v7
         with:
-          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || 'develop' }}
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
 
       - name: Resolve deploy SHA
         id: sha
@@ -67,12 +70,11 @@ jobs:
         run: |
           set -euo pipefail
           REGISTRY="${{ steps.ecr.outputs.registry }}"
-          # ECR repository is IMMUTABLE — tag with full commit SHA.
           IMAGE_TAG="${{ steps.sha.outputs.sha }}"
           IMAGE_URI="${REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
 
           docker build --platform linux/amd64 \
-            --build-arg NEXT_PUBLIC_BETTER_AUTH_URL="${DEVELOP_URL}" \
+            --build-arg NEXT_PUBLIC_BETTER_AUTH_URL="${PRODUCTION_URL}" \
             -t "${IMAGE_URI}" .
           docker push "${IMAGE_URI}"
 
@@ -99,12 +101,11 @@ jobs:
 
           for name in BETTER_AUTH_SECRET MEMBER_APPLICATION_CLAIM_SECRET GEONAMES_USERNAME; do
             if [ -z "${!name}" ]; then
-              echo "${name} is required for Join on develop" >&2
+              echo "${name} is required for production Join" >&2
               exit 1
             fi
           done
 
-          # Google OAuth is optional — V1 Join is the questionnaire only.
           for name in GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET LUMA_WEBHOOK_SECRET; do
             if [ -z "${!name}" ]; then
               echo "warning: ${name} not set; that feature will stay inactive" >&2
@@ -114,9 +115,22 @@ jobs:
           IMAGE_URI="${{ steps.image.outputs.uri }}"
           IMAGE_TAG="${{ steps.image.outputs.tag }}"
 
+          APP_SECURITY_GROUP="$(aws cloudformation describe-stacks \
+            --stack-name "${FOUNDATION_STACK}" \
+            --query "Stacks[0].Outputs[?OutputKey=='AppSecurityGroupId'].OutputValue" \
+            --output text)"
+          TARGET_GROUP_ARN="$(aws cloudformation describe-stacks \
+            --stack-name "${FOUNDATION_STACK}" \
+            --query "Stacks[0].Outputs[?OutputKey=='TargetGroupArn'].OutputValue" \
+            --output text)"
+          if [ -z "${APP_SECURITY_GROUP}" ] || [ -z "${TARGET_GROUP_ARN}" ]; then
+            echo "Missing AppSecurityGroupId or TargetGroupArn from ${FOUNDATION_STACK}" >&2
+            exit 1
+          fi
+
           TASK_JSON="$(mktemp)"
           sed "s|REPLACE_TAG|${IMAGE_TAG}|g" \
-            infra/aws/dev/task-definition.template.json > "${TASK_JSON}"
+            infra/aws/prod/task-definition.template.json > "${TASK_JSON}"
 
           jq \
             --arg image "${IMAGE_URI}" \
@@ -127,33 +141,33 @@ jobs:
             --arg google_client_secret "${GOOGLE_CLIENT_SECRET}" \
             --arg member_application_claim_secret "${MEMBER_APPLICATION_CLAIM_SECRET}" \
             --arg geonames_username "${GEONAMES_USERNAME}" \
-          '
-            def put($n; $v):
-              if ($v | length) == 0 then . else . + [{"name": $n, "value": $v}] end;
-            .containerDefinitions |= map(
-              if .name == "app" then
-                .image = $image |
-                .environment = (
-                  ((.environment // []) | map(select(
-                    .name != "LUMA_API_KEY" and
-                    .name != "LUMA_WEBHOOK_SECRET" and
-                    .name != "BETTER_AUTH_SECRET" and
-                    .name != "GOOGLE_CLIENT_ID" and
-                    .name != "GOOGLE_CLIENT_SECRET" and
-                    .name != "MEMBER_APPLICATION_CLAIM_SECRET" and
-                    .name != "GEONAMES_USERNAME"
-                  )))
-                  | put("LUMA_API_KEY"; $luma_api_key)
-                  | put("LUMA_WEBHOOK_SECRET"; $luma_webhook_secret)
-                  | put("BETTER_AUTH_SECRET"; $better_auth_secret)
-                  | put("GOOGLE_CLIENT_ID"; $google_client_id)
-                  | put("GOOGLE_CLIENT_SECRET"; $google_client_secret)
-                  | put("MEMBER_APPLICATION_CLAIM_SECRET"; $member_application_claim_secret)
-                  | put("GEONAMES_USERNAME"; $geonames_username)
-                )
-              else . end
-            )
-          ' \
+            '
+              def put($n; $v):
+                if ($v | length) == 0 then . else . + [{"name": $n, "value": $v}] end;
+              .containerDefinitions |= map(
+                if .name == "app" then
+                  .image = $image |
+                  .environment = (
+                    ((.environment // []) | map(select(
+                      .name != "LUMA_API_KEY" and
+                      .name != "LUMA_WEBHOOK_SECRET" and
+                      .name != "BETTER_AUTH_SECRET" and
+                      .name != "GOOGLE_CLIENT_ID" and
+                      .name != "GOOGLE_CLIENT_SECRET" and
+                      .name != "MEMBER_APPLICATION_CLAIM_SECRET" and
+                      .name != "GEONAMES_USERNAME"
+                    )))
+                    | put("LUMA_API_KEY"; $luma_api_key)
+                    | put("LUMA_WEBHOOK_SECRET"; $luma_webhook_secret)
+                    | put("BETTER_AUTH_SECRET"; $better_auth_secret)
+                    | put("GOOGLE_CLIENT_ID"; $google_client_id)
+                    | put("GOOGLE_CLIENT_SECRET"; $google_client_secret)
+                    | put("MEMBER_APPLICATION_CLAIM_SECRET"; $member_application_claim_secret)
+                    | put("GEONAMES_USERNAME"; $geonames_username)
+                  )
+                else . end
+              )
+            ' \
             "${TASK_JSON}" > "${TASK_JSON}.next"
           mv "${TASK_JSON}.next" "${TASK_JSON}"
 
@@ -168,7 +182,7 @@ jobs:
             --cluster "${CLUSTER}" \
             --task-definition "${TASK_ARN}" \
             --launch-type FARGATE \
-            --network-configuration "awsvpcConfiguration={subnets=[subnet-0463eda6ac077e977,subnet-07b302fc84ea32325],securityGroups=[sg-07f64e645b2c285d5],assignPublicIp=ENABLED}" \
+            --network-configuration "awsvpcConfiguration={subnets=[${APP_SUBNETS}],securityGroups=[${APP_SECURITY_GROUP}],assignPublicIp=ENABLED}" \
             --overrides '{"containerOverrides":[{"name":"app","command":["node","--experimental-strip-types","db/migrate.ts"]}]}' \
             --query 'tasks[0].taskArn' \
             --output text)"
@@ -191,13 +205,34 @@ jobs:
             exit 1
           fi
 
-          aws ecs update-service \
+          STATUS="$(aws ecs describe-services \
             --cluster "${CLUSTER}" \
-            --service "${SERVICE}" \
-            --task-definition "${TASK_ARN}" \
-            --force-new-deployment \
-            --query 'service.serviceArn' \
-            --output text
+            --services "${SERVICE}" \
+            --query 'services[0].status' \
+            --output text 2>/dev/null || true)"
+          if [ "${STATUS}" != "ACTIVE" ]; then
+            aws ecs create-service \
+              --cluster "${CLUSTER}" \
+              --service-name "${SERVICE}" \
+              --task-definition "${TASK_ARN}" \
+              --desired-count 1 \
+              --launch-type FARGATE \
+              --network-configuration "awsvpcConfiguration={subnets=[${APP_SUBNETS}],securityGroups=[${APP_SECURITY_GROUP}],assignPublicIp=ENABLED}" \
+              --load-balancers "targetGroupArn=${TARGET_GROUP_ARN},containerName=app,containerPort=3000" \
+              --health-check-grace-period-seconds 90 \
+              --deployment-configuration "minimumHealthyPercent=100,maximumPercent=200" \
+              --query 'service.serviceArn' \
+              --output text
+          else
+            aws ecs update-service \
+              --cluster "${CLUSTER}" \
+              --service "${SERVICE}" \
+              --task-definition "${TASK_ARN}" \
+              --desired-count 1 \
+              --force-new-deployment \
+              --query 'service.serviceArn' \
+              --output text
+          fi
 
           echo "Waiting for service stable..."
           aws ecs wait services-stable \
@@ -209,35 +244,55 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          body="$(curl -fsS "${DEVELOP_URL}/api/live")"
+          TARGET_GROUP_ARN="$(aws cloudformation describe-stacks \
+            --stack-name "${FOUNDATION_STACK}" \
+            --query "Stacks[0].Outputs[?OutputKey=='TargetGroupArn'].OutputValue" \
+            --output text)"
+          echo "Target health:"
+          aws elbv2 describe-target-health \
+            --target-group-arn "${TARGET_GROUP_ARN}" \
+            --output table
+          healthy="$(aws elbv2 describe-target-health \
+            --target-group-arn "${TARGET_GROUP_ARN}" \
+            --query "length(TargetHealthDescriptions[?TargetHealth.State=='healthy'])" \
+            --output text)"
+          if [ "${healthy}" = "0" ]; then
+            echo "No healthy targets in ${TARGET_GROUP_ARN}" >&2
+            exit 1
+          fi
+
+          if ! curl -fsS --connect-timeout 10 "${PRODUCTION_URL}/api/live" >/tmp/currents-live.json; then
+            echo "Public smoke skipped: ${PRODUCTION_URL} is not reachable yet (ACM/DNS cutover still pending)."
+            exit 0
+          fi
+
+          body="$(cat /tmp/currents-live.json)"
           echo "${body}"
           echo "${body}" | grep -q '"status":"ok"' || {
             echo "Expected /api/live to report ok" >&2
             exit 1
           }
-          home="$(curl -sS -o /dev/null -w '%{http_code}' "${DEVELOP_URL}/")"
+          home="$(curl -sS -o /dev/null -w '%{http_code}' "${PRODUCTION_URL}/")"
           echo "GET / -> ${home}"
           if [ "${home}" -ge 500 ]; then
             echo "Home page returned ${home}" >&2
             exit 1
           fi
 
-          events="$(curl -fsS "${DEVELOP_URL}/api/luma/events")"
+          events="$(curl -fsS "${PRODUCTION_URL}/api/luma/events")"
           echo "${events}" | jq -e '.events | type == "array"' >/dev/null || {
             echo "Expected /api/luma/events to return an events array" >&2
             exit 1
           }
-          event_count="$(echo "${events}" | jq '.events | length')"
-          echo "GET /api/luma/events -> ok (${event_count} events)"
 
-          health="$(curl -fsS "${DEVELOP_URL}/api/health")"
+          health="$(curl -fsS "${PRODUCTION_URL}/api/health")"
           echo "${health}"
           echo "${health}" | grep -q '"status":"ok"' || {
             echo "Expected /api/health to report ok" >&2
             exit 1
           }
 
-          states="$(curl -fsS "${DEVELOP_URL}/api/geo/states?country=AU")"
+          states="$(curl -fsS "${PRODUCTION_URL}/api/geo/states?country=AU")"
           echo "${states}" | jq -e '.states | type == "array" and length > 0' >/dev/null || {
             echo "Expected /api/geo/states to return AU states" >&2
             exit 1

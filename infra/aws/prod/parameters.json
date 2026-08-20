@@ -1,0 +1,24 @@
+[
+  { "ParameterKey": "VpcId", "ParameterValue": "vpc-0e4d635bd8276b4b9" },
+  {
+    "ParameterKey": "PublicSubnetIds",
+    "ParameterValue": "subnet-01ca3c9f04123576a,subnet-0c2fa11cecac91c62"
+  },
+  {
+    "ParameterKey": "PrivateSubnetIds",
+    "ParameterValue": "subnet-03e7b24e58a0819ee,subnet-014743fae8f102ddd"
+  },
+  {
+    "ParameterKey": "AlbSecurityGroupId",
+    "ParameterValue": "sg-031ab498d9a0e06f9"
+  },
+  {
+    "ParameterKey": "HttpsListenerArn",
+    "ParameterValue": "arn:aws:elasticloadbalancing:ap-southeast-2:765332581489:listener/app/ai-catalyst-production/8257a41fff930739/25ea6aad3a5799a6"
+  },
+  { "ParameterKey": "CertificateArn", "ParameterValue": "" },
+  {
+    "ParameterKey": "AlarmTopicArn",
+    "ParameterValue": "arn:aws:sns:ap-southeast-2:765332581489:ai-catalyst-production-alarms"
+  }
+]
