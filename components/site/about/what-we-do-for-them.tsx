@@ -10,22 +10,34 @@ const FUNCTIONS = [
   {
     number: "01",
     title: "Connect",
-    role: "the product",
     value:
       "Real connection between the right people. The room, the rhythm, and the relationships a founder cannot get anywhere else.",
   },
   {
     number: "02",
     title: "Amplify",
-    role: "the demand engine",
     value:
       "The brand and marketing engine. Put our people and the scene on the map.",
   },
   {
     number: "03",
-    title: "Capable",
-    role: "the follow-through",
+    title: "Capability",
     value: "The growth layer. Give founders what they actually need to grow.",
+  },
+] as const;
+
+const IMAGES = [
+  {
+    src: "/about-assets/kenji-reserve/mondrian-41.webp",
+    alt: "Currents members sharing a conversation at an event",
+  },
+  {
+    src: "/about-assets/kenji-reserve/mondrian-120.webp",
+    alt: "Two Currents members connecting over a drink",
+  },
+  {
+    src: "/about-assets/kenji-reserve/mondrian-73.webp",
+    alt: "Currents members gathered together in conversation",
   },
 ] as const;
 
@@ -41,54 +53,31 @@ function WhatWeDoForThem() {
       <div className="mx-auto max-w-[1140px] px-8">
         <div
           ref={headingRef}
-          className={cn(
-            "grid grid-cols-[0.9fr_1.1fr] items-center gap-[clamp(34px,6vw,76px)] max-[780px]:grid-cols-1",
-            REVEAL,
-            revealState(headingVisible),
-          )}
+          className={cn(REVEAL, revealState(headingVisible))}
         >
-          <div>
-            <Eyebrow className="mb-8">What we do for them</Eyebrow>
-            <h2 className="max-w-[10ch] font-display text-[clamp(36px,4.6vw,62px)] font-black uppercase leading-[0.94] tracking-[-0.03em]">
-              Connect first.
-              <br />
-              Then amplify.
-              <br />
-              Then capable.
-            </h2>
-            <p className="mt-7 max-w-[48ch] text-[17px] leading-[1.6] text-cream/60">
-              Three functions. The order carries the weight.
-            </p>
-          </div>
+          <Eyebrow className="mb-8">What we do</Eyebrow>
+          <h2 className="font-display text-[clamp(30px,7vw,40px)] font-black uppercase leading-[1.04] tracking-[-0.03em] min-[781px]:whitespace-nowrap min-[781px]:text-[min(calc(3.68vw_-_3px),39px)]">
+            Connect first. Then amplify. Then capability.
+          </h2>
+          <p className="mt-6 max-w-[48ch] text-[17px] leading-[1.6] text-cream/60">
+            Three functions. The order carries the weight.
+          </p>
 
-          <div className="grid h-[390px] grid-cols-2 grid-rows-[1.15fr_0.85fr] gap-3 min-[781px]:h-[clamp(360px,34vw,440px)] min-[781px]:grid-cols-12 min-[781px]:grid-rows-2">
-            <div className="relative col-span-2 overflow-hidden rounded-[6px] min-[781px]:col-span-7 min-[781px]:row-span-2">
-              <Image
-                src="/about-assets/kenji-reserve/mondrian-41.webp"
-                alt="Currents members sharing a conversation at an event"
-                fill
-                sizes="(max-width: 780px) 100vw, 31vw"
-                className="object-cover"
-              />
-            </div>
-            <div className="relative overflow-hidden rounded-[6px] min-[781px]:col-span-5">
-              <Image
-                src="/about-assets/kenji-reserve/mondrian-120.webp"
-                alt="Two Currents members connecting over a drink"
-                fill
-                sizes="(max-width: 780px) 50vw, 23vw"
-                className="object-cover"
-              />
-            </div>
-            <div className="relative overflow-hidden rounded-[6px] min-[781px]:col-span-5">
-              <Image
-                src="/about-assets/kenji-reserve/mondrian-73.webp"
-                alt="Currents members gathered together in conversation"
-                fill
-                sizes="(max-width: 780px) 50vw, 23vw"
-                className="object-cover"
-              />
-            </div>
+          <div className="mt-[clamp(30px,4vw,52px)] grid grid-cols-3 gap-3 max-[780px]:grid-cols-1">
+            {IMAGES.map((image) => (
+              <div
+                key={image.src}
+                className="relative aspect-[4/3] overflow-hidden rounded-[6px]"
+              >
+                <Image
+                  src={image.src}
+                  alt={image.alt}
+                  fill
+                  sizes="(max-width: 780px) 100vw, 33vw"
+                  className="object-cover"
+                />
+              </div>
+            ))}
           </div>
         </div>
 
@@ -117,9 +106,6 @@ function WhatWeDoForThem() {
                 <h3 className="mt-4 text-[clamp(30px,3vw,42px)] font-black uppercase leading-none tracking-[-0.02em]">
                   {item.title}
                 </h3>
-                <p className="mt-2 text-[18px] italic text-cream/60">
-                  {item.role}
-                </p>
               </div>
 
               <div className="flex flex-1 flex-col px-[clamp(24px,3vw,36px)] py-7">

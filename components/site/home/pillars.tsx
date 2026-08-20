@@ -5,8 +5,8 @@ import { Eyebrow } from "@/components/site/eyebrow";
 import { REVEAL, revealState, useReveal } from "@/components/site/use-reveal";
 
 const PILLARS = [
-  { n: "01", w: "Fun" },
-  { n: "02", w: "Friendship" },
+  { n: "01", w: "Friendship" },
+  { n: "02", w: "Fun" },
   { n: "03", w: "Innovation" },
 ];
 

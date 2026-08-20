@@ -43,7 +43,7 @@ const PRINCIPLES = [
   },
   {
     number: "P/06",
-    title: "We will disagree, it's how you do it",
+    title: "We will disagree, it's how we do it",
     subtext:
       "Different views make the work sharper. We challenge ideas directly, stay curious, and never make disagreement personal.",
   },
@@ -74,10 +74,10 @@ function Constitution() {
             </h2>
           </div>
           <p className="max-w-[58ch] self-end text-[clamp(16px,1.7vw,20px)] leading-[1.58] text-ink/62">
-            Not slogans. The operating principles every node runs on. Some are
-            paradoxes on purpose. They don&apos;t box you in, they frame how we
-            move. We say them as if we already live them, because if we do,
-            we&apos;re unstoppable.
+            Not slogans. The operating principles that every node runs on. We
+            don&apos;t box ourselves in, we frame how we move with each other.
+            We have them to lift the tide, because once we do, we are
+            unstoppable.
           </p>
         </div>
 
@@ -85,7 +85,7 @@ function Constitution() {
           type="multiple"
           ref={gridRef}
           className={cn(
-            "grid grid-cols-2 gap-px border border-ink bg-ink max-[700px]:grid-cols-1",
+            "grid grid-cols-2 gap-px border border-ink bg-cream/18 max-[700px]:grid-cols-1",
             REVEAL,
             revealState(gridVisible),
           )}
@@ -94,19 +94,19 @@ function Constitution() {
             <AccordionItem
               key={principle.number}
               value={principle.number}
-              className="border-0 bg-cream px-[clamp(18px,2.4vw,30px)] data-[state=open]:bg-lime"
+              className="group border-0 bg-ink px-[clamp(18px,2.4vw,30px)] text-cream transition-colors duration-200 hover:bg-[#151515] data-[state=open]:bg-lime data-[state=open]:text-ink data-[state=open]:hover:bg-lime"
             >
-              <AccordionTrigger className="min-h-[90px] gap-6 py-5 text-left hover:no-underline [&>svg]:mt-1 [&>svg]:text-ink/45">
-                <span className="grid grid-cols-[48px_1fr] items-start gap-3">
-                  <span className="pt-1 font-space text-[10px] tracking-[0.12em] text-ink/45">
+              <AccordionTrigger className="min-h-[112px] gap-6 py-6 text-left hover:no-underline [&>svg]:mt-1 [&>svg]:text-cream/45 group-data-[state=open]:[&>svg]:text-ink/45">
+                <span className="grid grid-cols-[56px_1fr] items-start gap-3">
+                  <span className="pt-[6px] font-space text-[12px] font-bold tracking-[0.14em] text-lime transition-colors duration-200 group-data-[state=open]:text-ink">
                     {principle.number}
                   </span>
-                  <span className="font-display text-[clamp(19px,2.1vw,27px)] font-black uppercase leading-[1.04] tracking-[-0.02em]">
+                  <span className="font-display text-[clamp(21px,2.35vw,30px)] font-black uppercase leading-[1.02] tracking-[-0.025em]">
                     {principle.title}
                   </span>
                 </span>
               </AccordionTrigger>
-              <AccordionContent className="pl-[60px]">
+              <AccordionContent className="pl-[68px]">
                 <p className="border-t border-ink/16 pt-4 pr-8 pb-2 text-[15px] leading-[1.55] text-ink/68">
                   {principle.subtext}
                 </p>

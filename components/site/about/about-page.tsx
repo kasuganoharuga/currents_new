@@ -7,12 +7,10 @@ import { SiteFooter } from "@/components/site/site-footer";
 import { SiteHeader } from "@/components/site/site-header";
 import { JoinButton } from "@/components/site/join-button";
 import { JoinDialog } from "@/components/site/join-dialog";
-import { BusinessModel } from "./business-model";
 import { CreateSection } from "./create-section";
 import { FractalSection } from "./fractal-section";
 import { JoinCta } from "./join-cta";
 import { AboutHero } from "./about-hero";
-import { WhatWeDo } from "./what-we-do";
 import { WhatWeDoForThem } from "./what-we-do-for-them";
 import { WhyWeExist } from "./why-we-exist";
 
@@ -27,10 +25,8 @@ function AboutPage() {
       <AboutHero />
       <WhyWeExist />
       <FractalSection />
-      {/* TODO(Q1): This standalone section can also be rendered on Home if Kenji confirms it. */}
-      <WhatWeDo />
       <WhatWeDoForThem />
-      <BusinessModel />
+      {/* TODO(business-model): section removed per client review — the business model is still being revisited. File kept in ./business-model.tsx for a one-line restore. */}
       <CreateSection />
       <JoinCta onOpenJoin={() => setJoinOpen(true)} />
       <SiteFooter />
