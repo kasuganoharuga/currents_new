@@ -30,7 +30,7 @@ function Rally({ onJoin }: { onJoin: () => void }) {
               The one you say when you&apos;re stuck
             </div>
             <h2 className="mt-5 font-display text-[clamp(48px,7.2vw,94px)] font-black uppercase leading-[0.86] tracking-[-0.05em]">
-              Make bigger than <span className="text-lime">big.</span>
+              Build bigger than <span className="text-lime">big.</span>
             </h2>
           </div>
           <p className="max-w-[54ch] text-[clamp(17px,1.8vw,21px)] leading-[1.55] text-cream/68">

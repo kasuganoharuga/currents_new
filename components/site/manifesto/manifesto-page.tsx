@@ -27,7 +27,7 @@ const MANIFESTO_PARAGRAPHS = [
     tone: "body",
   },
   {
-    text: "We’re here to be the change, not just speak about it. We're here to MAKE bigger than big. Shout it off the rooftops. Live free, create vibrantly, and empower others as we do for ourselves.",
+    text: "We’re here to be the change, not just speak about it. We're here to BUILD bigger than big. Shout it off the rooftops. Live free, create vibrantly, and empower others as we do for ourselves.",
     tone: "lime",
   },
   {

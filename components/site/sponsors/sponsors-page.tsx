@@ -204,11 +204,11 @@ function PartnershipInvite() {
       )}
     >
       <h3 className="font-display text-[clamp(24px,3vw,34px)] font-black uppercase leading-[0.95] tracking-[-0.03em]">
-        Your logo, next <span className="text-lime">in the row.</span>
+        Come join <span className="text-lime">the wave.</span>
       </h3>
       <p className="max-w-[38ch] text-[15px] leading-[1.6] text-cream/60">
-        Partnership details are still being written. Until then, reach out
-        directly if you want to back the movement.
+        Partnerships are how we grow this community, reach to see how you can
+        join us.
       </p>
       <a
         href={`mailto:${CONTACT_EMAIL}`}
