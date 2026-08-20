@@ -383,19 +383,6 @@ function JoinDialog({
 
                 <div className="col-span-2 max-[560px]:col-span-1">
                   <Field
-                    id="member-looking-for"
-                    label="What are you looking for?"
-                  >
-                    <Select
-                      id="member-looking-for"
-                      name="lookingFor"
-                      options={LOOKING_FOR}
-                    />
-                  </Field>
-                </div>
-
-                <div className="col-span-2 max-[560px]:col-span-1">
-                  <Field
                     id="member-whatsapp"
                     label="WhatsApp"
                     hint="our main communication channel"
@@ -408,6 +395,19 @@ function JoinDialog({
                       autoComplete="tel"
                       maxLength={40}
                       className={controlClass}
+                    />
+                  </Field>
+                </div>
+
+                <div className="col-span-2 max-[560px]:col-span-1">
+                  <Field
+                    id="member-looking-for"
+                    label="What are you looking for?"
+                  >
+                    <Select
+                      id="member-looking-for"
+                      name="lookingFor"
+                      options={LOOKING_FOR}
                     />
                   </Field>
                 </div>
