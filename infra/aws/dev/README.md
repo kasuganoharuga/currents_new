@@ -7,18 +7,19 @@ It is an **ECS + ALB** foundation — **not EC2**. Prefer that path.
 
 ## What already exists
 
-| Resource        | Value                                                                    |
-| --------------- | ------------------------------------------------------------------------ |
-| VPC             | `vpc-0dc75e7a94f95ff6a` (`ai-catalyst-staging`)                          |
-| ECS cluster     | `currents-develop`                                                       |
-| ECR             | `765332581489.dkr.ecr.ap-southeast-2.amazonaws.com/currents-develop/app` |
-| App SG          | `sg-07f64e645b2c285d5` (`currents-develop-app`)                          |
-| DB SG           | `sg-004c2aab58266867b` (`currents-develop-db`)                           |
-| RDS             | `currents-develop-postgres` (Postgres 17, private, `db.t4g.micro`)       |
-| DB subnet group | `currents-develop-db`                                                    |
-| `DATABASE_URL`  | Secrets Manager `currents-develop/database-url`                          |
-| Domain          | `https://develop.currentscommunity.com`                                  |
-| Assets bucket   | `currents-develop-assets-765332581489-ap-southeast-2`                    |
+| Resource         | Value                                                                    |
+| ---------------- | ------------------------------------------------------------------------ |
+| VPC              | `vpc-0dc75e7a94f95ff6a` (`ai-catalyst-staging`)                          |
+| ECS cluster      | `currents-develop`                                                       |
+| ECR              | `765332581489.dkr.ecr.ap-southeast-2.amazonaws.com/currents-develop/app` |
+| App SG           | `sg-07f64e645b2c285d5` (`currents-develop-app`)                          |
+| DB SG            | `sg-004c2aab58266867b` (`currents-develop-db`)                           |
+| RDS              | `currents-develop-postgres` (Postgres 17, private, `db.t4g.micro`)       |
+| DB subnet group  | `currents-develop-db`                                                    |
+| `DATABASE_URL`   | Secrets Manager `currents-develop/database-url`                          |
+| `AIRTABLE_TOKEN` | Secrets Manager `currents-develop/airtable-token`                        |
+| Domain           | `https://develop.currentscommunity.com`                                  |
+| Assets bucket    | `currents-develop-assets-765332581489-ap-southeast-2`                    |
 
 ## App ↔ DB
 
@@ -49,6 +50,23 @@ Required repository secret:
 
 - `LUMA_API_KEY`
 
+## Airtable member applications
+
+PostgreSQL remains the source of truth. Successful Join submissions are
+mirrored to the `Member Applications` table in the `Currents Operations`
+Airtable base using the PostgreSQL application ID as an idempotent upsert key.
+An Airtable outage does not reject an otherwise valid Join submission.
+
+The ECS task injects `AIRTABLE_TOKEN` from Secrets Manager and defines:
+
+- `AIRTABLE_BASE_ID=appzuTJ0yeC0GRtTK`
+- `AIRTABLE_MEMBER_APPLICATIONS_TABLE_ID=tblCwf56EE6xT94C0`
+
+To reconcile or backfill all PostgreSQL applications, run the deployed task
+image once with this command override:
+
+`node scripts/sync-member-applications-to-airtable.mjs`
+
 Optional (features stay off until set):
 
 - `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` — Google sign-in (not part of V1 Join)
@@ -58,7 +76,7 @@ Trust / policy JSON used to provision the role:
 
 - [`github-actions-trust.json`](./github-actions-trust.json)
 - [`github-actions-policy.json`](./github-actions-policy.json)
-- [`ecs-execution-database-url-policy.json`](./ecs-execution-database-url-policy.json)
+- [`ecs-execution-secrets-policy.json`](./ecs-execution-secrets-policy.json)
 
 ## Public subnets (ECS tasks)
 

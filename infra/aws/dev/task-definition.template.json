@@ -27,12 +27,21 @@
         },
         { "name": "AWS_REGION", "value": "ap-southeast-2" },
         { "name": "SES_FROM_EMAIL", "value": "noreply@currentscommunity.com" },
+        { "name": "AIRTABLE_BASE_ID", "value": "appzuTJ0yeC0GRtTK" },
+        {
+          "name": "AIRTABLE_MEMBER_APPLICATIONS_TABLE_ID",
+          "value": "tblCwf56EE6xT94C0"
+        },
         { "name": "GOOGLE_CLIENT_ID", "value": "" }
       ],
       "secrets": [
         {
           "name": "DATABASE_URL",
           "valueFrom": "arn:aws:secretsmanager:ap-southeast-2:765332581489:secret:currents-develop/database-url-eir0B9"
+        },
+        {
+          "name": "AIRTABLE_TOKEN",
+          "valueFrom": "arn:aws:secretsmanager:ap-southeast-2:765332581489:secret:currents-develop/airtable-token-97Dh1K"
         }
       ],
       "logConfiguration": {

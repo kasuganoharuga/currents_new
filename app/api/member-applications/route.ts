@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { syncMemberApplicationToAirtable } from "@/lib/airtable/member-applications";
 import { getPool } from "@/lib/db";
 import { createClaimToken } from "@/lib/member-applications/claim";
 
@@ -96,7 +97,21 @@ export async function POST(request: Request) {
   ];
 
   try {
-    const result = await getPool().query<{ id: string }>(
+    const result = await getPool().query<{
+      id: string;
+      name: string;
+      email: string;
+      legacyLocation: string | null;
+      whatsapp: string | null;
+      linkedinUrl: string;
+      category: string;
+      lookingFor: string | null;
+      heardAbout: string | null;
+      countryName: string | null;
+      stateName: string | null;
+      cityName: string | null;
+      createdAt: Date;
+    }>(
       `insert into member_applications (
         name,
         email,
@@ -112,11 +127,33 @@ export async function POST(request: Request) {
         city_id,
         city_name
       ) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-      returning id`,
+      returning
+        id::text,
+        name,
+        email,
+        location as "legacyLocation",
+        whatsapp,
+        linkedin_url as "linkedinUrl",
+        category,
+        looking_for as "lookingFor",
+        heard_about as "heardAbout",
+        country_name as "countryName",
+        state_name as "stateName",
+        city_name as "cityName",
+        created_at as "createdAt"`,
       values,
     );
 
-    const applicationId = result.rows[0].id;
+    const application = result.rows[0];
+    const applicationId = application.id;
+
+    try {
+      await syncMemberApplicationToAirtable(application);
+    } catch (error) {
+      // PostgreSQL is authoritative. A temporary Airtable outage must not
+      // reject a valid application; the idempotent backfill handles retries.
+      console.error("Unable to sync member application to Airtable", error);
+    }
 
     return Response.json(
       {

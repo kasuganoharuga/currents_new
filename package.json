@@ -14,6 +14,7 @@
     "docker:up:full": "docker compose --env-file .env -f infra/docker/docker-compose.yml --profile full up -d --build --wait && pnpm db:migrate",
     "docker:down": "docker compose --env-file .env -f infra/docker/docker-compose.yml --profile full down --remove-orphans",
     "db:migrate": "tsx db/migrate.ts",
+    "airtable:sync-member-applications": "node scripts/sync-member-applications-to-airtable.mjs",
     "db:psql": "docker compose --env-file .env -f infra/docker/docker-compose.yml exec db psql -U currents -d currents",
     "db:reset": "docker compose --env-file .env -f infra/docker/docker-compose.yml --profile full down -v --remove-orphans && pnpm docker:up"
   },

@@ -37,6 +37,7 @@ COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/db/migrate.ts ./db/migrate.ts
 COPY --from=builder /app/db/ecs-entrypoint.mjs ./db/ecs-entrypoint.mjs
 COPY --from=builder /app/infra/database/migrations ./infra/database/migrations
+COPY --from=builder /app/scripts/sync-member-applications-to-airtable.mjs ./scripts/sync-member-applications-to-airtable.mjs
 
 EXPOSE 3000
 
